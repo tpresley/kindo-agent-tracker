@@ -195,9 +195,9 @@ const Page: Page = function ({ state, context }) {
           {webhooks.length > 0 && (
             <div className="default-webhook-row">
               <label className="input-label">Default webhook</label>
-              <select className="default-webhook-select" value={defaultWebhookId || ''}>
-                <option value="">None</option>
-                {webhooks.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+              <select className="default-webhook-select">
+                <option value="" attrs={{ selected: !defaultWebhookId ? '' : undefined }}>None</option>
+                {webhooks.map(w => <option key={w.id} value={w.id} attrs={{ selected: defaultWebhookId === w.id ? '' : undefined }}>{w.name}</option>)}
               </select>
               <span className="input-hint">Applied to all monitored agents unless overridden</span>
             </div>

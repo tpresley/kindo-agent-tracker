@@ -262,15 +262,18 @@ async function handleMessage(ws: WebSocket, client: ClientState, msg: WsClientMe
       const prevApiKey = client.apiKey
       const prevIds = new Set(client.selectedAgentIds)
 
-      // Build client entries for conflict resolution
-      const now = new Date().toISOString()
+      // Build client entries for conflict resolution.
+      // Use epoch 0 for keys without timestamps — this means the client has no
+      // authoritative opinion, so the server will win if it has any data.
+      // But if the server also has no data, the client value gets inserted.
       const timestamps = msg.timestamps || {}
+      const NO_OPINION = '1970-01-01T00:00:00.000Z'
       const clientEntries = [
-        { key: 'apiKey', value: msg.apiKey, updatedAt: timestamps.apiKey || now },
-        { key: 'selectedAgentIds', value: JSON.stringify(msg.selectedAgentIds), updatedAt: timestamps.selectedAgentIds || now },
-        { key: 'webhooks', value: JSON.stringify(msg.webhooks || []), updatedAt: timestamps.webhooks || now },
-        { key: 'agentWebhookMap', value: JSON.stringify(msg.agentWebhookMap || {}), updatedAt: timestamps.agentWebhookMap || now },
-        { key: 'defaultWebhookId', value: msg.defaultWebhookId ?? '', updatedAt: timestamps.defaultWebhookId || now },
+        { key: 'apiKey', value: msg.apiKey, updatedAt: timestamps.apiKey || NO_OPINION },
+        { key: 'selectedAgentIds', value: JSON.stringify(msg.selectedAgentIds), updatedAt: timestamps.selectedAgentIds || NO_OPINION },
+        { key: 'webhooks', value: JSON.stringify(msg.webhooks || []), updatedAt: timestamps.webhooks || NO_OPINION },
+        { key: 'agentWebhookMap', value: JSON.stringify(msg.agentWebhookMap || {}), updatedAt: timestamps.agentWebhookMap || NO_OPINION },
+        { key: 'defaultWebhookId', value: msg.defaultWebhookId ?? '', updatedAt: timestamps.defaultWebhookId || NO_OPINION },
       ]
 
       // Resolve against SQLite
