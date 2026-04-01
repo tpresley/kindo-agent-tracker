@@ -21,7 +21,7 @@ A real-time dashboard for monitoring [Kindo](https://kindo.ai) agent run statuse
 ## Installation
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/tpresley/kindo-agent-tracker.git
 cd kindo-agent-tracker
 npm install
 ```
