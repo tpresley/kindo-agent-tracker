@@ -1,11 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="512" height="512" rx="80" fill="#0f1117"/>
-  <rect x="80" y="80" width="352" height="352" rx="64" fill="#1485EF"/>
-  <circle cx="192" cy="216" r="36" fill="#fff" opacity="0.9"/>
-  <circle cx="320" cy="216" r="36" fill="#fff" opacity="0.9"/>
-  <path d="M152 316 Q256 396 360 316" stroke="#fff" stroke-width="18" fill="none" stroke-linecap="round" opacity="0.9"/>
-  <circle cx="192" cy="216" r="15" fill="#1485EF"/>
-  <circle cx="320" cy="216" r="15" fill="#1485EF"/>
-  <rect x="140" y="120" width="48" height="18" rx="9" fill="#22c55e" opacity="0.8"/>
-  <rect x="324" y="120" width="48" height="18" rx="9" fill="#22c55e" opacity="0.8"/>
+  <g transform="translate(80, 96) scale(14.08)">
+    <path d="M24.3681 9.4142L23.0941 7.121L16.362 7.99939L18.8094 3.39957L17.4683 0.97897L14.6857 1.274L12.3254 5.93417L9.1538 0L6.46499 0.295032L5.51284 2.2865L8.99288 8.95824L0.939845 10.0445L0.0078125 12.0762L1.21476 14.5504L8.49669 13.5178L6.41135 17.6148L7.6183 19.975L10.2468 19.5459L12.4059 15.4892L15.792 22L18.5211 21.5507L19.6341 19.6196L15.8188 12.4852L23.2952 11.4124L24.3882 9.44102L24.3748 9.4142H24.3681Z" fill="#F3F3F3"/>
+  </g>
 </svg>

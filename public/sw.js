@@ -1,7 +1,6 @@
 const CACHE_NAME = 'kindo-tracker-v1'
 const PRECACHE_URLS = [
   '/',
-  '/index.html',
   '/favicon.svg',
   '/icon-192.svg',
   '/icon-512.svg',
