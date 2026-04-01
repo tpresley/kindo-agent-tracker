@@ -176,7 +176,7 @@ const Page: Page = function ({ state, context }) {
                 Find your API key at{' '}
                 <a href="https://app.kindo.ai/settings/api" target="_blank" rel="noopener">app.kindo.ai/settings/api</a>
               </p>
-              <button className="submit-key-btn" attrs={{ disabled: !state.apiKeyInput.trim() || isOffline }}>Connect</button>
+              <button className="submit-key-btn" attrs={{ disabled: !(state.apiKeyInput || '').trim() || isOffline }}>Connect</button>
             </div>
           </div>
         )}
@@ -285,7 +285,7 @@ const Page: Page = function ({ state, context }) {
                 </label>
               </div>
               <div className="webhook-form-actions">
-                <button className="submit-key-btn wf-save-btn" attrs={{ disabled: !state.wfName.trim() || !state.wfUrl.trim() }}>
+                <button className="submit-key-btn wf-save-btn" attrs={{ disabled: !(state.wfName || '').trim() || !(state.wfUrl || '').trim() }}>
                   {state.editingWebhookId ? 'Update' : 'Create'}
                 </button>
                 <button className="disconnect-btn wf-cancel-btn">Cancel</button>
