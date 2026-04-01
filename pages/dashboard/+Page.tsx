@@ -261,9 +261,11 @@ const Page: Page = function ({ state, context }) {
   )
 }
 
+const isBrowser = typeof window !== 'undefined'
+
 Page.initialState = {
   collapsedAgents: {},
-  compactView: false,
+  compactView: isBrowser && localStorage.getItem('kindo-tracker-compactView') === 'true',
 }
 
 Page.intent = ({ DOM }) => ({
@@ -287,10 +289,11 @@ Page.model = {
     },
   },
 
-  TOGGLE_VIEW: (state) => ({
-    ...state,
-    compactView: !state.compactView,
-  }),
+  TOGGLE_VIEW: (state) => {
+    const next = !state.compactView
+    localStorage.setItem('kindo-tracker-compactView', String(next))
+    return { ...state, compactView: next }
+  },
 }
 
 export default Page
