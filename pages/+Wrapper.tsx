@@ -68,8 +68,6 @@ type Actions = {
   LOGIN_PASSWORD: string
   LOGIN_SUBMIT: Event
   LOGIN_RESULT: { success: boolean; error?: string }
-  LOGOUT: Event
-  LOGOUT_RESULT: any
 }
 
 type Calculated = {
@@ -248,8 +246,6 @@ Wrapper.intent = ({ DOM }) => ({
     DOM.keydown('.login-password-input').key().filter((k: string) => k === 'Enter'),
   ),
   LOGIN_RESULT: xs.never(), // Populated by EFFECT
-  LOGOUT: DOM.click('.logout-btn'),
-  LOGOUT_RESULT: xs.never(),
 })
 
 Wrapper.model = {
@@ -319,21 +315,6 @@ Wrapper.model = {
       }
     },
   },
-
-  LOGOUT: {
-    EFFECT: (_state, _data, next) => {
-      fetch('/api/auth/logout', { method: 'POST' })
-        .then(() => next!('LOGOUT_RESULT', {}))
-        .catch(() => next!('LOGOUT_RESULT', {}))
-    },
-  },
-
-  LOGOUT_RESULT: (state) => ({
-    ...state,
-    authenticated: false,
-    loginUsername: '',
-    loginPassword: '',
-  }),
 
   WS_EVENT: (state, event) => {
     switch (event.type) {

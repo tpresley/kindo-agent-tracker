@@ -1,6 +1,8 @@
 import type { Component } from 'sygnal'
 
-type Layout = Component<Record<string, never>>
+type State = Record<string, never>
+type Actions = { LOGOUT_CLICK: Event }
+type Layout = Component<State, {}, Actions>
 
 function formatLastFetched(iso: string | null): string {
   if (!iso) return 'Never'
@@ -51,7 +53,7 @@ const Layout: Layout = function ({ state, context, children, innerHTML }) {
             <a href="/settings" className={`tab ${isSettings ? 'active' : ''}`}>Settings</a>
           </nav>
           {context.authEnabled && (
-            <button className="logout-btn">Logout</button>
+            <button className="layout-logout-btn logout-btn">Logout</button>
           )}
         </div>
       </header>
@@ -65,5 +67,24 @@ const Layout: Layout = function ({ state, context, children, innerHTML }) {
 }
 
 Layout.initialState = {}
+
+Layout.intent = ({ DOM }) => ({
+  LOGOUT_CLICK: DOM.click('.layout-logout-btn'),
+})
+
+Layout.model = {
+  LOGOUT_CLICK: {
+    EFFECT: () => {
+      fetch('/api/auth/logout', { method: 'POST' })
+        .then(() => {
+          // Force a hard reload to clear Vike's client-side state
+          window.location.reload()
+        })
+        .catch(() => {
+          window.location.reload()
+        })
+    },
+  },
+}
 
 export default Layout
