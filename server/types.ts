@@ -97,4 +97,4 @@ export type WsServerMessage =
   | { type: 'error'; message: string }
   | { type: 'webhookFired'; log: WebhookFireLog }
   | { type: 'webhookTestResult'; webhookId: string; httpStatus: number | null; success: boolean; responseBody?: string; error?: string }
-  | { type: 'settingsSync'; settings: SettingsSyncPayload; overriddenKeys: string[] }
+  | { type: 'settingsSync'; settings: SettingsSyncPayload; overriddenKeys: string[]; timestamps: Record<string, string> }

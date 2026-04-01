@@ -67,51 +67,48 @@ type ClientSettingsEntry = { key: string; value: string; updatedAt: string }
  */
 export function resolveSettings(
   clientEntries: ClientSettingsEntry[],
-): { resolved: Record<string, string>; overriddenKeys: string[] } {
+): { resolved: Record<string, string>; resolvedTimestamps: Record<string, string>; overriddenKeys: string[] } {
   const serverAll = getAllSettings()
   const resolved: Record<string, string> = {}
+  const resolvedTimestamps: Record<string, string> = {}
   const overriddenKeys: string[] = []
 
-  // Build a map of client entries for quick lookup
   const clientMap = new Map<string, ClientSettingsEntry>()
   for (const entry of clientEntries) {
     clientMap.set(entry.key, entry)
   }
 
-  // Process each known settings key
   for (const key of SETTINGS_KEYS) {
     const clientEntry = clientMap.get(key)
     const serverEntry = serverAll[key]
 
     if (clientEntry && !serverEntry) {
-      // Key exists on client but not server → insert from client
       setSetting(key, clientEntry.value, clientEntry.updatedAt)
       resolved[key] = clientEntry.value
+      resolvedTimestamps[key] = clientEntry.updatedAt
     } else if (!clientEntry && serverEntry) {
-      // Key exists on server but not client → keep server
       resolved[key] = serverEntry.value
+      resolvedTimestamps[key] = serverEntry.updatedAt
     } else if (clientEntry && serverEntry) {
-      // Both exist → compare timestamps
       const clientTime = new Date(clientEntry.updatedAt).getTime()
       const serverTime = new Date(serverEntry.updatedAt).getTime()
 
       if (clientTime > serverTime) {
-        // Client is newer → update server
         setSetting(key, clientEntry.value, clientEntry.updatedAt)
         resolved[key] = clientEntry.value
+        resolvedTimestamps[key] = clientEntry.updatedAt
       } else if (clientTime < serverTime) {
-        // Server is newer → keep server, mark as overridden
         resolved[key] = serverEntry.value
+        resolvedTimestamps[key] = serverEntry.updatedAt
         overriddenKeys.push(key)
       } else {
-        // Same timestamp → values should be identical, use server
         resolved[key] = serverEntry.value
+        resolvedTimestamps[key] = serverEntry.updatedAt
       }
     }
-    // If neither exists, key won't be in resolved (use defaults)
   }
 
-  return { resolved, overriddenKeys }
+  return { resolved, resolvedTimestamps, overriddenKeys }
 }
 
 /**

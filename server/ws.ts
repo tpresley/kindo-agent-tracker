@@ -7,7 +7,7 @@ import type {
 } from './types.js'
 import { fetchAgentList, fetchAgentDetails, fetchModelMap } from './kindo.js'
 import { isAuthEnabled, validateSession, extractSessionFromCookie } from './auth.js'
-import { resolveSettings, setSetting, loadSettingsForClient, SETTINGS_KEYS } from './db.js'
+import { resolveSettings, setSetting, loadSettingsForClient, getAllSettings, SETTINGS_KEYS } from './db.js'
 import type { SettingsSyncPayload } from './types.js'
 
 const SLOW_INTERVAL = 60_000
@@ -274,16 +274,17 @@ async function handleMessage(ws: WebSocket, client: ClientState, msg: WsClientMe
       ]
 
       // Resolve against SQLite
-      const { resolved, overriddenKeys } = resolveSettings(clientEntries)
+      const { resolved, resolvedTimestamps, overriddenKeys } = resolveSettings(clientEntries)
 
       // Apply resolved values to ClientState
       applySettingsToClient(client, resolved)
 
-      // Send authoritative state back to client
+      // Send authoritative state back to client with server timestamps
       send(ws, {
         type: 'settingsSync',
         settings: buildSettingsSyncPayload(client),
         overriddenKeys,
+        timestamps: resolvedTimestamps,
       })
 
       // Clean up lastKnownStatus for removed agents
@@ -348,10 +349,14 @@ async function handleMessage(ws: WebSocket, client: ClientState, msg: WsClientMe
     }
     case 'getSettings': {
       populateClientFromDb(client)
+      const allSettings = getAllSettings()
+      const ts: Record<string, string> = {}
+      for (const [k, v] of Object.entries(allSettings)) ts[k] = v.updatedAt
       send(ws, {
         type: 'settingsSync',
         settings: buildSettingsSyncPayload(client),
         overriddenKeys: [],
+        timestamps: ts,
       })
       break
     }

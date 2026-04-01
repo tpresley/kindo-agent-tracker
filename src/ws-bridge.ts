@@ -73,8 +73,7 @@ export function connectWs(apiKey: string, selectedAgentIds: string[]) {
       const msg: WsServerMessage = JSON.parse(event.data)
       // Handle settingsSync by updating localStorage from server authority
       if (msg.type === 'settingsSync') {
-        applyServerSettings(msg.settings)
-        // Update module-scope vars to match
+        applyServerSettings(msg.settings, msg.timestamps || {})
         lastApiKey = msg.settings.apiKey || null
         lastSelectedIds = msg.settings.selectedAgentIds
       }
@@ -164,24 +163,24 @@ export function loadTimestamps(): Record<string, string> {
   return result
 }
 
-/** Apply authoritative settings from server settingsSync to localStorage. */
-function applyServerSettings(settings: SettingsSyncPayload) {
-  const now = new Date().toISOString()
+/** Apply authoritative settings from server settingsSync to localStorage.
+ *  Uses the server's actual timestamps so client and server stay in sync. */
+function applyServerSettings(settings: SettingsSyncPayload, timestamps: Record<string, string>) {
   if (settings.apiKey !== undefined) {
     localStorage.setItem(`${STORAGE_PREFIX}-apiKey`, settings.apiKey)
-    localStorage.setItem(`${TS_PREFIX}apiKey`, now)
+    if (timestamps.apiKey) localStorage.setItem(`${TS_PREFIX}apiKey`, timestamps.apiKey)
   }
   if (settings.selectedAgentIds !== undefined) {
     localStorage.setItem(`${STORAGE_PREFIX}-selectedAgents`, JSON.stringify(settings.selectedAgentIds))
-    localStorage.setItem(`${TS_PREFIX}selectedAgentIds`, now)
+    if (timestamps.selectedAgentIds) localStorage.setItem(`${TS_PREFIX}selectedAgentIds`, timestamps.selectedAgentIds)
   }
   if (settings.webhooks !== undefined) {
     localStorage.setItem(`${STORAGE_PREFIX}-webhooks`, JSON.stringify(settings.webhooks))
-    localStorage.setItem(`${TS_PREFIX}webhooks`, now)
+    if (timestamps.webhooks) localStorage.setItem(`${TS_PREFIX}webhooks`, timestamps.webhooks)
   }
   if (settings.agentWebhookMap !== undefined) {
     localStorage.setItem(`${STORAGE_PREFIX}-agentWebhookMap`, JSON.stringify(settings.agentWebhookMap))
-    localStorage.setItem(`${TS_PREFIX}agentWebhookMap`, now)
+    if (timestamps.agentWebhookMap) localStorage.setItem(`${TS_PREFIX}agentWebhookMap`, timestamps.agentWebhookMap)
   }
   if (settings.defaultWebhookId !== undefined) {
     if (settings.defaultWebhookId) {
@@ -189,7 +188,7 @@ function applyServerSettings(settings: SettingsSyncPayload) {
     } else {
       localStorage.removeItem(`${STORAGE_PREFIX}-defaultWebhookId`)
     }
-    localStorage.setItem(`${TS_PREFIX}defaultWebhookId`, now)
+    if (timestamps.defaultWebhookId) localStorage.setItem(`${TS_PREFIX}defaultWebhookId`, timestamps.defaultWebhookId)
   }
 }
 
