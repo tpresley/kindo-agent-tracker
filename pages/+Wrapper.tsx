@@ -156,6 +156,7 @@ Wrapper.initialState = {
   webhookLog: isBrowser ? loadWebhookLog() : [],
   webhookTestResults: {},
   overrideNotification: null,
+  suppressNextOverride: false,
 }
 
 Wrapper.calculated = {
@@ -301,6 +302,7 @@ Wrapper.model = {
           loginUsername: '',
           loginPassword: '',
           loginError: null,
+          suppressNextOverride: true,
         }
       }
       return { ...state, loginError: data.error || 'Login failed' }
@@ -353,7 +355,8 @@ Wrapper.model = {
             return { ...state, webhookTestResults: { ...state.webhookTestResults, [msg.webhookId]: { success: msg.success, httpStatus: msg.httpStatus, error: msg.error } } }
           case 'settingsSync': {
             const s = msg.settings
-            return { ...state, apiKey: s.apiKey || '', selectedAgentIds: s.selectedAgentIds, webhooks: s.webhooks, agentWebhookMap: s.agentWebhookMap, defaultWebhookId: s.defaultWebhookId, loading: false, overrideNotification: msg.overriddenKeys.length > 0 ? msg.overriddenKeys : null }
+            const showOverride = !state.suppressNextOverride && msg.overriddenKeys.length > 0
+            return { ...state, apiKey: s.apiKey || '', selectedAgentIds: s.selectedAgentIds, webhooks: s.webhooks, agentWebhookMap: s.agentWebhookMap, defaultWebhookId: s.defaultWebhookId, loading: false, overrideNotification: showOverride ? msg.overriddenKeys : null, suppressNextOverride: false }
           }
           default:
             return state
