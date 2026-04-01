@@ -45,10 +45,15 @@ const Layout: Layout = function ({ state, context, children, innerHTML }) {
             </div>
           </div>
         </div>
-        <nav className="tab-nav">
-          <a href="/" className={`tab ${isDashboard ? 'active' : ''}`}>Dashboard</a>
-          <a href="/settings" className={`tab ${isSettings ? 'active' : ''}`}>Settings</a>
-        </nav>
+        <div className="header-right">
+          <nav className="tab-nav">
+            <a href="/" className={`tab ${isDashboard ? 'active' : ''}`}>Dashboard</a>
+            <a href="/settings" className={`tab ${isSettings ? 'active' : ''}`}>Settings</a>
+          </nav>
+          {context.authEnabled && (
+            <button className="logout-btn">Logout</button>
+          )}
+        </div>
       </header>
 
       {children && children.length

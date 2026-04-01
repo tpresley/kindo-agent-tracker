@@ -6,6 +6,7 @@ import type {
   WsClientMessage, WsServerMessage,
 } from './types.js'
 import { fetchAgentList, fetchAgentDetails, fetchModelMap } from './kindo.js'
+import { isAuthEnabled, validateSession, extractSessionFromCookie } from './auth.js'
 import { resolveSettings, setSetting, loadSettingsForClient, SETTINGS_KEYS } from './db.js'
 import type { SettingsSyncPayload } from './types.js'
 
@@ -360,7 +361,22 @@ async function handleMessage(ws: WebSocket, client: ClientState, msg: WsClientMe
 // ── WebSocket server ───────────────────────────────────────
 
 export function attachWebSocket(server: HttpServer) {
-  const wss = new WebSocketServer({ server, path: '/ws' })
+  const wss = new WebSocketServer({
+    server,
+    path: '/ws',
+    verifyClient: (info, callback) => {
+      if (!isAuthEnabled()) {
+        callback(true)
+        return
+      }
+      const sessionId = extractSessionFromCookie(info.req.headers.cookie)
+      if (validateSession(sessionId)) {
+        callback(true)
+      } else {
+        callback(false, 401, 'Unauthorized')
+      }
+    },
+  })
 
   wss.on('connection', (ws) => {
     const client: ClientState = {
