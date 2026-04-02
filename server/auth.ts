@@ -5,7 +5,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const DB_PATH = join(__dirname, '..', 'data', 'kindo-tracker.db')
+const DB_PATH = process.env.DB_PATH || join(__dirname, '..', 'data', 'kindo-tracker.db')
 
 /** Whether auth is enabled (env vars are set). */
 export function isAuthEnabled(): boolean {

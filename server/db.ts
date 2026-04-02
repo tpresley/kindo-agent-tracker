@@ -4,7 +4,7 @@ import { mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const DB_PATH = join(__dirname, '..', 'data', 'kindo-tracker.db')
+const DB_PATH = process.env.DB_PATH || join(__dirname, '..', 'data', 'kindo-tracker.db')
 
 let db: Database.Database
 
