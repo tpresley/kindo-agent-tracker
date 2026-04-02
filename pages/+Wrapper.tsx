@@ -249,7 +249,7 @@ Wrapper.model = {
     },
     WS: (_state: State, resp: HttpResponse): WsCommand | undefined => {
       const data = resp.error ? { authenticated: true } : resp.data
-      if (data.authenticated && savedKey) return { action: 'connect', apiKey: savedKey, selectedAgentIds: savedIds }
+      if (data.authenticated) return { action: 'connect', apiKey: savedKey || '', selectedAgentIds: savedIds }
       return undefined
     },
   },
@@ -277,9 +277,7 @@ Wrapper.model = {
     },
     WS: (_state: State, resp: HttpResponse): WsCommand | undefined => {
       if (resp.data?.success) {
-        const key = loadApiKey()
-        const ids = loadSelectedAgentIds()
-        if (key) return { action: 'connect', apiKey: key, selectedAgentIds: ids }
+        return { action: 'connect', apiKey: loadApiKey() || '', selectedAgentIds: loadSelectedAgentIds() }
       }
       return undefined
     },

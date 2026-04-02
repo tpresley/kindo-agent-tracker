@@ -107,12 +107,12 @@ export function makeWsDriver() {
   }
 
   function scheduleReconnect() {
-    if (!lastApiKey) return
+    if (lastApiKey === null) return // Only skip if explicitly disconnected
     const delay = Math.min(1000 * 2 ** reconnectAttempt, MAX_RECONNECT_DELAY)
     reconnectAttempt++
     reconnectTimer = setTimeout(() => {
       reconnectTimer = null
-      if (lastApiKey) {
+      if (lastApiKey !== null) {
         doConnect(lastApiKey, lastSelectedIds)
       }
     }, delay)

@@ -27,12 +27,15 @@ let defaultWebhookId: string | null = null
 let lastKnown: Record<string, AgentTracker> = {}
 let timer: ReturnType<typeof setInterval> | null = null
 let currentInterval = SLOW_INTERVAL
+let lastPollResult: WsServerMessage | null = null
 
 const listeners = new Set<(msg: WsServerMessage) => void>()
 
 // ── Broadcast to connected clients ─────────────────────────
 
 function broadcast(msg: WsServerMessage) {
+  // Cache agentData for new clients
+  if (msg.type === 'agentData') lastPollResult = msg
   for (const fn of listeners) {
     try { fn(msg) } catch { /* ignore dead listeners */ }
   }
@@ -40,6 +43,10 @@ function broadcast(msg: WsServerMessage) {
 
 export function registerListener(fn: (msg: WsServerMessage) => void) {
   listeners.add(fn)
+  // Send cached poll result immediately so new clients don't wait for next cycle
+  if (lastPollResult) {
+    try { fn(lastPollResult) } catch { /* ignore */ }
+  }
 }
 
 export function unregisterListener(fn: (msg: WsServerMessage) => void) {
@@ -218,6 +225,27 @@ function startPolling() {
 /** Initialize engine from SQLite. Call once on server start. */
 export function initEngine() {
   reloadConfig()
+}
+
+/** Broadcast current settings to all connected clients. */
+export function broadcastSettings(excludeListener?: (msg: WsServerMessage) => void) {
+  const db = loadSettingsForClient()
+  const msg: WsServerMessage = {
+    type: 'settingsSync',
+    settings: {
+      apiKey: db.apiKey || '',
+      selectedAgentIds: db.selectedAgentIds,
+      webhooks: db.webhooks,
+      agentWebhookMap: db.agentWebhookMap,
+      defaultWebhookId: db.defaultWebhookId,
+    },
+    overriddenKeys: [],
+    timestamps: {},
+  }
+  for (const fn of listeners) {
+    if (fn === excludeListener) continue
+    try { fn(msg) } catch { /* ignore */ }
+  }
 }
 
 /** Re-read settings from SQLite and restart polling if config changed. */

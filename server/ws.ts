@@ -8,7 +8,7 @@ import type { WsClientMessage, WsServerMessage, SettingsSyncPayload } from './ty
 import { fetchAgentList, fetchModelMap } from './kindo.js'
 import { isAuthEnabled, validateSession, extractSessionFromCookie } from './auth.js'
 import { resolveSettings, loadSettingsForClient, getAllSettings } from './db.js'
-import { registerListener, unregisterListener, reloadConfig, forceRefresh, fireTestWebhook } from './engine.js'
+import { registerListener, unregisterListener, reloadConfig, forceRefresh, fireTestWebhook, broadcastSettings } from './engine.js'
 
 function send(ws: WebSocket, msg: WsServerMessage) {
   if (ws.readyState === WebSocket.OPEN) {
@@ -29,7 +29,7 @@ function buildSettingsSyncPayload(): SettingsSyncPayload {
 
 // ── Message handling ───────────────────────────────────────
 
-async function handleMessage(ws: WebSocket, msg: WsClientMessage) {
+async function handleMessage(ws: WebSocket, msg: WsClientMessage, listener: (msg: WsServerMessage) => void) {
   switch (msg.type) {
     case 'configure': {
       // Resolve settings against SQLite
@@ -55,6 +55,8 @@ async function handleMessage(ws: WebSocket, msg: WsClientMessage) {
 
       // Tell the engine to pick up the new config from SQLite
       reloadConfig()
+      // Notify other connected clients of the settings change
+      broadcastSettings(listener)
       break
     }
 
@@ -136,7 +138,7 @@ export function attachWebSocket(server: HttpServer) {
     ws.on('message', (raw) => {
       try {
         const msg: WsClientMessage = JSON.parse(String(raw))
-        handleMessage(ws, msg)
+        handleMessage(ws, msg, listener)
       } catch {
         send(ws, { type: 'error', message: 'Invalid message' })
       }
