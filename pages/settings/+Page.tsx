@@ -241,8 +241,8 @@ const Page: Page = function ({ state, context }) {
             <>
               <div className="filter-bar">
                 <input type="text" className="search-input" placeholder="Search agents..." value={state.searchQuery} />
-                <select className="creator-filter" value={state.filterCreator}>
-                  <option value="">All creators</option>
+                <select className="creator-filter" value={state.filterCreator || 'all'}>
+                  <option value="all">All creators</option>
                   {creators.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
                 <div className="bulk-actions">
@@ -350,7 +350,7 @@ Page.model = {
   UPDATE_SEARCH: (state, value) => ({ ...state, searchQuery: value }),
   TOGGLE_FILTER_TRIGGERS: (state) => ({ ...state, filterTriggers: !state.filterTriggers }),
   TOGGLE_FILTER_RECENT_RUNS: (state) => ({ ...state, filterRecentRuns: !state.filterRecentRuns }),
-  UPDATE_CREATOR_FILTER: (state, value) => ({ ...state, filterCreator: value }),
+  UPDATE_CREATOR_FILTER: (state, value) => ({ ...state, filterCreator: value === 'all' ? '' : value }),
 
   TOGGLE_AGENT: {
     EFFECT: (_state, agentId, _next: any, { context }: any) => {
