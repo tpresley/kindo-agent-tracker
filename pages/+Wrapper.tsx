@@ -216,7 +216,7 @@ Wrapper.intent = ({ DOM, WS, EVENTS, HTTP }: any) => ({
 
   // Fire once on startup to trigger auth check via HTTP driver
   INIT_AUTH: isBrowser
-    ? xs.create<true>({ start: (listener) => { listener.next(true); listener.complete() }, stop: () => {} })
+    ? xs.of(true as const)
     : xs.never(),
 
   AUTH_STATUS: HTTP.select('auth-status'),

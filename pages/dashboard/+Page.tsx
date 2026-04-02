@@ -1,4 +1,4 @@
-import { classes } from 'sygnal'
+import { xs, classes } from 'sygnal'
 import type { Component } from 'sygnal'
 import type { Agent, Run, WebhookFireLog } from '../../server/types.js'
 import type { AppDrivers, AppContext } from '../../src/types.js'
@@ -10,6 +10,7 @@ type State = {
 }
 
 type Actions = {
+  INIT_VIEW: true
   TOGGLE_AGENT: string
   REFRESH: Event
   TOGGLE_VIEW: Event
@@ -263,20 +264,24 @@ const Page: Page = function ({ state, context }) {
   )
 }
 
-const isBrowser = typeof window !== 'undefined'
-
 Page.initialState = {
   collapsedAgents: {},
-  compactView: isBrowser && localStorage.getItem('kindo-tracker-compactView') === 'true',
+  compactView: false,
 }
 
 Page.intent = ({ DOM }) => ({
+  INIT_VIEW: xs.of(true),
   TOGGLE_AGENT: DOM.click('.toggle-agent').data('agentid'),
   REFRESH: DOM.click('.refresh-btn'),
   TOGGLE_VIEW: DOM.click('.toggle-view'),
 })
 
 Page.model = {
+  INIT_VIEW: (state) => ({
+    ...state,
+    compactView: localStorage.getItem('kindo-tracker-compactView') === 'true',
+  }),
+
   TOGGLE_AGENT: (state, agentId) => ({
     ...state,
     collapsedAgents: {
@@ -289,10 +294,9 @@ Page.model = {
     WS: (): WsCommand => ({ action: 'send', msg: { type: 'refresh' } }),
   },
 
-  TOGGLE_VIEW: (state) => {
-    const next = !state.compactView
-    localStorage.setItem('kindo-tracker-compactView', String(next))
-    return { ...state, compactView: next }
+  TOGGLE_VIEW: {
+    STATE: (state) => ({ ...state, compactView: !state.compactView }),
+    EFFECT: (state) => { localStorage.setItem('kindo-tracker-compactView', String(!state.compactView)) },
   },
 }
 
