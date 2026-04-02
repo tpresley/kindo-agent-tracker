@@ -59,7 +59,7 @@ async function startServer() {
   })
 
   // ── Vike page rendering ──────────────────────────
-  app.get('*', async (req, res) => {
+  app.get('{*path}', async (req, res) => {
     const pageContext = await renderPage({ urlOriginal: req.originalUrl })
     const { httpResponse } = pageContext
 

@@ -7,14 +7,14 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "server:prod": "node server/index.js"
+    "server:prod": "tsx server/index.ts"
   },
   "dependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "better-sqlite3": "^12.8.0",
     "compression": "^1.8.0",
     "express": "^5.1.0",
-    "sygnal": "^5.3.6",
+    "sygnal": "^5.3.7",
     "vike": "^0.4.255",
     "ws": "^8.18.0"
   },
@@ -22,6 +22,7 @@
     "@types/compression": "^1.7.5",
     "@types/express": "^5.0.2",
     "@types/ws": "^8.18.1",
+    "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.3"
   }

@@ -72,7 +72,7 @@ export default defineConfig({
           next()
         })
 
-        // WS server on separate port
+        // WS server on separate port in dev to avoid conflicting with Vite's HMR WebSocket
         import('node:http').then(async ({ createServer }) => {
           const { initDb } = await import('./server/db.js')
           const { cleanStaleSessions } = await import('./server/auth.js')

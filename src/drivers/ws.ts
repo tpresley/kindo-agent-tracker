@@ -43,6 +43,7 @@ const TS_PREFIX = `${STORAGE_PREFIX}-ts-`
 
 function getWsUrl(): string {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
+  // In dev, WS runs on a separate port to avoid conflicting with Vite's HMR WebSocket
   const isDev = import.meta.env.DEV
   const host = isDev ? `${location.hostname}:3001` : location.host
   return `${proto}//${host}/ws`

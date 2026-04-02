@@ -48,13 +48,13 @@ If these are not set, the dashboard is accessible without authentication.
 
 ```bash
 npm run build
-node server/index.js
+npm run server:prod
 ```
 
 Or with auth:
 
 ```bash
-KINDO_UN=admin KINDO_PW=yourpassword PORT=3000 node server/index.js
+KINDO_UN=admin KINDO_PW=yourpassword PORT=3000 npm run server:prod
 ```
 
 ## Usage

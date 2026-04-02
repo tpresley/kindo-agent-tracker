@@ -136,7 +136,7 @@ function renderCompactPanel(
     <div className={classes('compact-panel', health)} key={agent.agentId}>
       <div className="compact-status-bar">
         <span className={classes('compact-dot', health)}>
-          {health === 'in_progress' && <span className="pulse" />}
+          {health === 'in_progress' ? <span className="pulse" /> : ''}
         </span>
       </div>
       <div className="compact-info">
