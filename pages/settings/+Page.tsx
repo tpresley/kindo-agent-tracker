@@ -1,6 +1,7 @@
 import { xs, ABORT, classes } from 'sygnal'
 import type { Component } from 'sygnal'
 import type { AgentSummary, Webhook, WebhookPreset } from '../../server/types.js'
+import type { AppDrivers, AppContext } from '../../src/types.js'
 import type { WsCommand } from '../../src/drivers/ws.js'
 import {
   saveApiKey,
@@ -80,7 +81,7 @@ type Actions = {
   WF_CANCEL: Event
 }
 
-type Page = Component<State, {}, Actions>
+type Page = Component<State, {}, AppDrivers, Actions, {}, AppContext>
 
 // ── Helpers ────────────────────────────────────────────────
 
@@ -112,16 +113,17 @@ function emptyFormState(): Partial<State> {
 // ── Page component ─────────────────────────────────────────
 
 const Page: Page = function ({ state, context }) {
-  const apiKey: string = context.apiKey || ''
-  const connected: boolean = context.connected
-  const allAgents: AgentSummary[] = context.allAgents || []
-  const selectedIds: string[] = context.selectedAgentIds || []
-  const webhooks: Webhook[] = context.webhooks || []
-  const agentWebhookMap: Record<string, string[]> = context.agentWebhookMap || {}
-  const defaultWebhookId: string | null = context.defaultWebhookId
-  const testResults: Record<string, any> = context.webhookTestResults || {}
-  const isOffline: boolean = context.isOffline
-  const error: string | null = context.error
+  const ctx = context!
+  const apiKey: string = ctx.apiKey || ''
+  const connected: boolean = ctx.connected
+  const allAgents: AgentSummary[] = ctx.allAgents || []
+  const selectedIds: string[] = ctx.selectedAgentIds || []
+  const webhooks: Webhook[] = ctx.webhooks || []
+  const agentWebhookMap: Record<string, string[]> = ctx.agentWebhookMap || {}
+  const defaultWebhookId: string | null = ctx.defaultWebhookId
+  const testResults: Record<string, any> = ctx.webhookTestResults || {}
+  const isOffline: boolean = ctx.isOffline
+  const error: string | null = ctx.error
   const isConfigured = !!apiKey
 
   const creators = getCreators(allAgents)
@@ -351,12 +353,12 @@ Page.model = {
   UPDATE_CREATOR_FILTER: (state, value) => ({ ...state, filterCreator: value }),
 
   TOGGLE_AGENT: {
-    EFFECT: (_state, agentId, _next, { context }) => {
+    EFFECT: (_state, agentId, _next: any, { context }: any) => {
       const current: string[] = context.selectedAgentIds || []
       const updated = current.includes(agentId) ? current.filter((id: string) => id !== agentId) : [...current, agentId]
       saveSelectedAgentIds(updated)
     },
-    EVENTS: (_state, agentId, _next, { context }) => {
+    EVENTS: (_state, agentId, _next: any, { context }: any) => {
       const current: string[] = context.selectedAgentIds || []
       const updated = current.includes(agentId) ? current.filter((id: string) => id !== agentId) : [...current, agentId]
       return { type: 'SELECTION_CHANGED', data: updated }
@@ -364,14 +366,14 @@ Page.model = {
   },
 
   SELECT_ALL_FILTERED: {
-    EFFECT: (state, _data, _next, { context }) => {
+    EFFECT: (state, _data, _next: any, { context }: any) => {
       const allAgents: AgentSummary[] = context.allAgents || []
       const current: string[] = context.selectedAgentIds || []
       const filtered = filterAgents(allAgents, state.searchQuery, state.filterCreator)
       const merged = new Set([...current, ...filtered.map(a => a.agentId)])
       saveSelectedAgentIds(Array.from(merged))
     },
-    EVENTS: (state, _data, _next, { context }) => {
+    EVENTS: (state, _data, _next: any, { context }: any) => {
       const allAgents: AgentSummary[] = context.allAgents || []
       const current: string[] = context.selectedAgentIds || []
       const filtered = filterAgents(allAgents, state.searchQuery, state.filterCreator)
@@ -389,7 +391,7 @@ Page.model = {
 
   ADD_WEBHOOK: (state) => ({ ...state, ...emptyFormState() }),
 
-  EDIT_WEBHOOK: (state, webhookId, _next, { context }) => {
+  EDIT_WEBHOOK: (state, webhookId, _next: any, { context }: any) => {
     const wh = (context.webhooks as Webhook[])?.find(w => w.id === webhookId)
     if (!wh) return state
     return {
@@ -401,7 +403,7 @@ Page.model = {
   },
 
   DELETE_WEBHOOK: {
-    EFFECT: (_state, webhookId, _next, { context }) => {
+    EFFECT: (_state, webhookId, _next: any, { context }: any) => {
       const current = (context.webhooks as Webhook[]) || []
       saveWebhooks(current.filter(w => w.id !== webhookId))
       const map = loadAgentWebhookMap()
@@ -409,7 +411,7 @@ Page.model = {
       saveAgentWebhookMap(map)
       if (context.defaultWebhookId === webhookId) saveDefaultWebhookId(null)
     },
-    EVENTS: () => ({ type: 'WEBHOOKS_CHANGED' }),
+    EVENTS: () => ({ type: 'WEBHOOKS_CHANGED', data: null }),
   },
 
   TOGGLE_WEBHOOK_ENABLED: {
@@ -418,11 +420,11 @@ Page.model = {
       const idx = webhooks.findIndex(w => w.id === webhookId)
       if (idx >= 0) { webhooks[idx].enabled = !webhooks[idx].enabled; saveWebhooks(webhooks) }
     },
-    EVENTS: () => ({ type: 'WEBHOOKS_CHANGED' }),
+    EVENTS: () => ({ type: 'WEBHOOKS_CHANGED', data: null }),
   },
 
   TEST_WEBHOOK: {
-    WS: (_state, webhookId, _next, { context }): WsCommand | undefined => {
+    WS: (_state, webhookId, _next: any, { context }: any): WsCommand | undefined => {
       const wh = (context.webhooks as Webhook[])?.find(w => w.id === webhookId)
       if (!wh) return undefined
       return { action: 'send', msg: { type: 'testWebhook', webhook: wh } }
@@ -431,7 +433,7 @@ Page.model = {
 
   UPDATE_DEFAULT_WEBHOOK: {
     EFFECT: (_state, value) => { saveDefaultWebhookId(value === 'none' ? null : value || null) },
-    EVENTS: () => ({ type: 'WEBHOOKS_CHANGED' }),
+    EVENTS: () => ({ type: 'WEBHOOKS_CHANGED', data: null }),
   },
 
   UPDATE_AGENT_WEBHOOK: {
@@ -447,7 +449,7 @@ Page.model = {
       else map[agentId] = [value]
       saveAgentWebhookMap(map)
     },
-    EVENTS: () => ({ type: 'WEBHOOKS_CHANGED' }),
+    EVENTS: () => ({ type: 'WEBHOOKS_CHANGED', data: null }),
   },
 
   // ── Webhook form ─────────────────────────────────
@@ -486,7 +488,7 @@ Page.model = {
       if (idx >= 0) webhooks[idx] = webhook; else webhooks.push(webhook)
       saveWebhooks(webhooks)
     },
-    EVENTS: () => ({ type: 'WEBHOOKS_CHANGED' }),
+    EVENTS: () => ({ type: 'WEBHOOKS_CHANGED', data: null }),
   },
 
   WF_CANCEL: (state) => ({ ...state, webhookFormOpen: false }),

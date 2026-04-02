@@ -1,8 +1,9 @@
 import { xs, ABORT } from 'sygnal'
-import type { Component } from 'sygnal'
+import type { Component, Event as SygnalEvent } from 'sygnal'
 import type { Agent, Run, AgentSummary, Webhook, AgentWebhookMap, WebhookFireLog, WsServerMessage } from '../server/types.js'
 import type { WsCommand } from '../src/drivers/ws.js'
 import type { HttpRequest, HttpResponse } from '../src/drivers/http.js'
+import type { AppDrivers, AppContext, VikeShellProps } from '../src/types.js'
 import {
   loadApiKey,
   loadSelectedAgentIds,
@@ -62,6 +63,7 @@ type Actions = {
   WS_CLOSE: void
   WS_MESSAGE: WsServerMessage
   ONLINE_CHANGED: boolean
+  INIT_AUTH: true
   AUTH_STATUS: HttpResponse
   LOGIN_USERNAME: string
   LOGIN_PASSWORD: string
@@ -79,7 +81,7 @@ type Calculated = {
   needsSetup: boolean
 }
 
-type Wrapper = Component<State, {}, Actions, Calculated>
+type Wrapper = Component<State, VikeShellProps, AppDrivers, Actions, Calculated, {}>
 
 const Wrapper: Wrapper = function ({ state, children, innerHTML }) {
   if (state.authChecked && state.authEnabled && !state.authenticated) {
@@ -123,7 +125,7 @@ const Wrapper: Wrapper = function ({ state, children, innerHTML }) {
           <button className="dismiss-override-btn">Dismiss</button>
         </div>
       )}
-      {children && children.length
+      {children && (children as any[]).length
         ? children
         : <div props={{ innerHTML: innerHTML || '' }}></div>
       }
@@ -197,13 +199,11 @@ Wrapper.context = {
   authEnabled: (state) => state.authEnabled,
 }
 
-Wrapper.intent = ({ DOM, WS, EVENTS, HTTP }) => ({
-  // WS driver sources
+Wrapper.intent = ({ DOM, WS, EVENTS, HTTP }: any) => ({
   WS_OPEN:    WS.select('open'),
   WS_CLOSE:   WS.select('close'),
   WS_MESSAGE: WS.select('message'),
 
-  // Online/offline
   ONLINE_CHANGED: isBrowser
     ? xs.create<boolean>({
         start: (listener) => {
@@ -214,12 +214,15 @@ Wrapper.intent = ({ DOM, WS, EVENTS, HTTP }) => ({
       })
     : xs.never(),
 
-  // Auth check on load via HTTP driver
+  // Fire once on startup to trigger auth check via HTTP driver
+  INIT_AUTH: isBrowser
+    ? xs.create<true>({ start: (listener) => { listener.next(true); listener.complete() }, stop: () => {} })
+    : xs.never(),
+
   AUTH_STATUS: HTTP.select('auth-status'),
 
   DISMISS_OVERRIDE: DOM.click('.dismiss-override-btn'),
 
-  // Auth form
   LOGIN_USERNAME: DOM.input('.login-username-input').value(),
   LOGIN_PASSWORD: DOM.input('.login-password-input').value(),
   LOGIN_SUBMIT: xs.merge(
@@ -228,7 +231,6 @@ Wrapper.intent = ({ DOM, WS, EVENTS, HTTP }) => ({
   ),
   LOGIN_RESULT: HTTP.select('auth-login'),
 
-  // Cross-component events
   SELECTION_CHANGED: EVENTS.select('SELECTION_CHANGED'),
   WEBHOOKS_CHANGED:  EVENTS.select('WEBHOOKS_CHANGED'),
   LOGOUT_REQUEST:    EVENTS.select('LOGOUT'),
@@ -236,56 +238,44 @@ Wrapper.intent = ({ DOM, WS, EVENTS, HTTP }) => ({
 })
 
 Wrapper.model = {
-  // Fire auth status check on startup
+  INIT_AUTH: {
+    HTTP: (): HttpRequest => ({ id: 'auth-status', url: '/api/auth/status' }),
+  },
+
   AUTH_STATUS: {
-    STATE: (state, resp: HttpResponse) => {
+    STATE: (state: State, resp: HttpResponse) => {
       const data = resp.error ? { authEnabled: false, authenticated: true } : resp.data
-      return {
-        ...state,
-        authChecked: true,
-        authEnabled: data.authEnabled,
-        authenticated: data.authenticated,
-      }
+      return { ...state, authChecked: true, authEnabled: data.authEnabled, authenticated: data.authenticated }
     },
-    WS: (_state, resp: HttpResponse): WsCommand | undefined => {
+    WS: (_state: State, resp: HttpResponse): WsCommand | undefined => {
       const data = resp.error ? { authenticated: true } : resp.data
-      if (data.authenticated && savedKey) {
-        return { action: 'connect', apiKey: savedKey, selectedAgentIds: savedIds }
-      }
+      if (data.authenticated && savedKey) return { action: 'connect', apiKey: savedKey, selectedAgentIds: savedIds }
       return undefined
     },
   },
 
-  LOGIN_USERNAME: (state, value) => ({ ...state, loginUsername: value }),
-  LOGIN_PASSWORD: (state, value) => ({ ...state, loginPassword: value }),
+  LOGIN_USERNAME: (state: State, value: string) => ({ ...state, loginUsername: value }),
+  LOGIN_PASSWORD: (state: State, value: string) => ({ ...state, loginPassword: value }),
 
   LOGIN_SUBMIT: {
-    STATE: (state) => {
+    STATE: (state: State) => {
       if (!state.loginUsername.trim() || !state.loginPassword.trim()) return ABORT
       return { ...state, loginError: null }
     },
-    HTTP: (state): HttpRequest | undefined => {
+    HTTP: (state: State): HttpRequest | undefined => {
       const username = state.loginUsername.trim()
       const password = state.loginPassword.trim()
       if (!username || !password) return undefined
-      return {
-        id: 'auth-login',
-        url: '/api/auth/login',
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      }
+      return { id: 'auth-login', url: '/api/auth/login', method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) }
     },
   },
 
   LOGIN_RESULT: {
-    STATE: (state, resp: HttpResponse) => {
-      if (resp.data?.success) {
-        return { ...state, authenticated: true, loginUsername: '', loginPassword: '', loginError: null, suppressNextOverride: true }
-      }
+    STATE: (state: State, resp: HttpResponse) => {
+      if (resp.data?.success) return { ...state, authenticated: true, loginUsername: '', loginPassword: '', loginError: null, suppressNextOverride: true }
       return { ...state, loginError: resp.data?.error || resp.error || 'Login failed' }
     },
-    WS: (_state, resp: HttpResponse): WsCommand | undefined => {
+    WS: (_state: State, resp: HttpResponse): WsCommand | undefined => {
       if (resp.data?.success) {
         const key = loadApiKey()
         const ids = loadSelectedAgentIds()
@@ -295,20 +285,15 @@ Wrapper.model = {
     },
   },
 
-  WS_OPEN: (state) => ({
-    ...state,
-    connected: true,
-    error: null,
-    apiKey: loadApiKey(),
-    selectedAgentIds: loadSelectedAgentIds(),
-    webhooks: loadWebhooks(),
-    agentWebhookMap: loadAgentWebhookMap(),
-    defaultWebhookId: loadDefaultWebhookId(),
+  WS_OPEN: (state: State) => ({
+    ...state, connected: true, error: null,
+    apiKey: loadApiKey(), selectedAgentIds: loadSelectedAgentIds(),
+    webhooks: loadWebhooks(), agentWebhookMap: loadAgentWebhookMap(), defaultWebhookId: loadDefaultWebhookId(),
   }),
 
-  WS_CLOSE: (state) => ({ ...state, connected: false }),
+  WS_CLOSE: (state: State) => ({ ...state, connected: false }),
 
-  WS_MESSAGE: (state, msg: WsServerMessage) => {
+  WS_MESSAGE: (state: State, msg: WsServerMessage) => {
     switch (msg.type) {
       case 'agentData': {
         const newAgents = msg.agents.length > 0 ? msg.agents : state.agents
@@ -337,44 +322,22 @@ Wrapper.model = {
     }
   },
 
-  ONLINE_CHANGED: (state, isOnline) => ({ ...state, isOffline: !isOnline }),
-  DISMISS_OVERRIDE: (state) => ({ ...state, overrideNotification: null }),
+  ONLINE_CHANGED: (state: State, isOnline: boolean) => ({ ...state, isOffline: !isOnline }),
+  DISMISS_OVERRIDE: (state: State) => ({ ...state, overrideNotification: null }),
 
-  // Cross-component events
   SELECTION_CHANGED: {
-    STATE: (state, ids) => ({ ...state, selectedAgentIds: ids }),
+    STATE: (state: State, ids: string[]) => ({ ...state, selectedAgentIds: ids }),
     WS: (): WsCommand => ({
       action: 'send',
-      msg: {
-        type: 'configure',
-        apiKey: loadApiKey(),
-        selectedAgentIds: loadSelectedAgentIds(),
-        webhooks: loadWebhooks(),
-        agentWebhookMap: loadAgentWebhookMap(),
-        defaultWebhookId: loadDefaultWebhookId(),
-        timestamps: loadTimestamps(),
-      },
+      msg: { type: 'configure', apiKey: loadApiKey(), selectedAgentIds: loadSelectedAgentIds(), webhooks: loadWebhooks(), agentWebhookMap: loadAgentWebhookMap(), defaultWebhookId: loadDefaultWebhookId(), timestamps: loadTimestamps() },
     }),
   },
 
   WEBHOOKS_CHANGED: {
-    STATE: (state) => ({
-      ...state,
-      webhooks: loadWebhooks(),
-      agentWebhookMap: loadAgentWebhookMap(),
-      defaultWebhookId: loadDefaultWebhookId(),
-    }),
+    STATE: (state: State) => ({ ...state, webhooks: loadWebhooks(), agentWebhookMap: loadAgentWebhookMap(), defaultWebhookId: loadDefaultWebhookId() }),
     WS: (): WsCommand => ({
       action: 'send',
-      msg: {
-        type: 'configure',
-        apiKey: loadApiKey(),
-        selectedAgentIds: loadSelectedAgentIds(),
-        webhooks: loadWebhooks(),
-        agentWebhookMap: loadAgentWebhookMap(),
-        defaultWebhookId: loadDefaultWebhookId(),
-        timestamps: loadTimestamps(),
-      },
+      msg: { type: 'configure', apiKey: loadApiKey(), selectedAgentIds: loadSelectedAgentIds(), webhooks: loadWebhooks(), agentWebhookMap: loadAgentWebhookMap(), defaultWebhookId: loadDefaultWebhookId(), timestamps: loadTimestamps() },
     }),
   },
 
@@ -384,33 +347,6 @@ Wrapper.model = {
 
   LOGOUT_DONE: {
     EFFECT: () => { window.location.href = '/' },
-  },
-}
-
-// Emit the initial auth-status request on startup
-// This is a one-shot HTTP request triggered by a startup stream
-const authCheckRequest: HttpRequest = { id: 'auth-status', url: '/api/auth/status' }
-
-Wrapper.intent = ((originalIntent: any) => {
-  return (sources: any) => {
-    const actions = originalIntent(sources)
-    // Inject the initial auth check HTTP request
-    return {
-      ...actions,
-      _INIT_AUTH: isBrowser
-        ? xs.create({
-            start: (listener: any) => { listener.next(true); listener.complete() },
-            stop: () => {},
-          })
-        : xs.never(),
-    }
-  }
-})(Wrapper.intent)
-
-Wrapper.model = {
-  ...Wrapper.model,
-  _INIT_AUTH: {
-    HTTP: (): HttpRequest => authCheckRequest,
   },
 }
 

@@ -1,8 +1,9 @@
 import type { Component } from 'sygnal'
+import type { AppDrivers, AppContext, VikeShellProps } from '../src/types.js'
 
 type State = Record<string, never>
 type Actions = { LOGOUT_CLICK: Event }
-type Layout = Component<State, {}, Actions>
+type Layout = Component<State, VikeShellProps, AppDrivers, Actions, {}, AppContext>
 
 function formatLastFetched(iso: string | null): string {
   if (!iso) return 'Never'
@@ -16,7 +17,8 @@ function formatLastFetched(iso: string | null): string {
 }
 
 const Layout: Layout = function ({ state, context, children, innerHTML }) {
-  const path = context.urlPathname || '/'
+  const ctx = context!
+  const path = ctx.urlPathname || '/'
   const isSettings = path === '/settings'
   const isDashboard = !isSettings
 
@@ -28,20 +30,20 @@ const Layout: Layout = function ({ state, context, children, innerHTML }) {
           <div>
             <h1 className="header-title">Kindo Agent Tracker</h1>
             <div className="header-meta">
-              <span className={`connection-status ${context.isOffline ? 'offline' : context.connected ? 'online' : 'disconnected'}`}>
+              <span className={`connection-status ${ctx.isOffline ? 'offline' : ctx.connected ? 'online' : 'disconnected'}`}>
                 <span className="status-dot" />
-                {context.isOffline ? 'Offline' : context.connected ? 'Connected' : 'Disconnected'}
+                {ctx.isOffline ? 'Offline' : ctx.connected ? 'Connected' : 'Disconnected'}
               </span>
-              {context.connected && (
+              {ctx.connected && (
                 <>
                   <span className="separator">{'\u00B7'}</span>
-                  <span className="last-fetched">Updated: {formatLastFetched(context.lastFetchedAt)}</span>
+                  <span className="last-fetched">Updated: {formatLastFetched(ctx.lastFetchedAt)}</span>
                 </>
               )}
-              {context.activeRunCount > 0 && (
+              {ctx.activeRunCount > 0 && (
                 <span className="active-indicator">
                   <span className="pulse" />
-                  {context.activeRunCount} active
+                  {ctx.activeRunCount} active
                 </span>
               )}
             </div>
@@ -52,13 +54,13 @@ const Layout: Layout = function ({ state, context, children, innerHTML }) {
             <a href="/" className={`tab ${isDashboard ? 'active' : ''}`}>Dashboard</a>
             <a href="/settings" className={`tab ${isSettings ? 'active' : ''}`}>Settings</a>
           </nav>
-          {context.authEnabled && (
+          {ctx.authEnabled && (
             <button className="layout-logout-btn logout-btn">Logout</button>
           )}
         </div>
       </header>
 
-      {children && children.length
+      {children && (children as any[]).length
         ? <main className="dashboard-main">{children}</main>
         : <main className="dashboard-main" props={{ innerHTML: innerHTML || '' }}></main>
       }
@@ -66,7 +68,7 @@ const Layout: Layout = function ({ state, context, children, innerHTML }) {
   )
 }
 
-Layout.initialState = {}
+Layout.initialState = {} as State
 
 Layout.intent = ({ DOM }) => ({
   LOGOUT_CLICK: DOM.click('.layout-logout-btn'),
@@ -74,7 +76,7 @@ Layout.intent = ({ DOM }) => ({
 
 Layout.model = {
   LOGOUT_CLICK: {
-    EVENTS: () => ({ type: 'LOGOUT' }),
+    EVENTS: (): { type: string; data: any } => ({ type: 'LOGOUT', data: null }),
   },
 }
 

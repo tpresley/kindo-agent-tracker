@@ -1,6 +1,7 @@
 import { classes } from 'sygnal'
 import type { Component } from 'sygnal'
 import type { Agent, Run, WebhookFireLog } from '../../server/types.js'
+import type { AppDrivers, AppContext } from '../../src/types.js'
 import type { WsCommand } from '../../src/drivers/ws.js'
 
 type State = {
@@ -14,7 +15,7 @@ type Actions = {
   TOGGLE_VIEW: Event
 }
 
-type Page = Component<State, {}, Actions>
+type Page = Component<State, {}, AppDrivers, Actions, {}, AppContext>
 
 // ── Formatting helpers ─────────────────────────────────────
 
@@ -154,15 +155,16 @@ function renderCompactPanel(
 // ── Page component ─────────────────────────────────────────
 
 const Page: Page = function ({ state, context }) {
-  const agents: Agent[] = context.agents || []
-  const runs: Record<string, Run> = context.runs || {}
-  const models: Record<string, string> = context.models || {}
-  const loading: boolean = context.loading
-  const error: string | null = context.error
-  const needsSetup: boolean = context.needsSetup
-  const activeRunCount: number = context.activeRunCount || 0
-  const connected: boolean = context.connected
-  const webhookLog: WebhookFireLog[] = context.webhookLog || []
+  const ctx = context!
+  const agents: Agent[] = ctx.agents || []
+  const runs: Record<string, Run> = ctx.runs || {}
+  const models: Record<string, string> = ctx.models || {}
+  const loading: boolean = ctx.loading
+  const error: string | null = ctx.error
+  const needsSetup: boolean = ctx.needsSetup
+  const activeRunCount: number = ctx.activeRunCount || 0
+  const connected: boolean = ctx.connected
+  const webhookLog: WebhookFireLog[] = ctx.webhookLog || []
 
   if (needsSetup) {
     return (
