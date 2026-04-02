@@ -78,6 +78,8 @@ export default defineConfig({
           const { cleanStaleSessions } = await import('./server/auth.js')
           initDb()
           cleanStaleSessions()
+          const { initEngine } = await import('./server/engine.js')
+          initEngine()
           const wsHttp = createServer()
           const { attachWebSocket } = await import('./server/ws.js')
           attachWebSocket(wsHttp)

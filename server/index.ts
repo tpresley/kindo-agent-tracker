@@ -3,6 +3,7 @@ import compression from 'compression'
 import { renderPage } from 'vike/server'
 import { attachWebSocket } from './ws.js'
 import { initDb } from './db.js'
+import { initEngine } from './engine.js'
 import {
   isAuthEnabled,
   verifyCredentials,
@@ -17,6 +18,7 @@ const PORT = parseInt(process.env.PORT || '3000', 10)
 async function startServer() {
   initDb()
   cleanStaleSessions()
+  initEngine()
 
   const app = express()
 
