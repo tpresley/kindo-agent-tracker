@@ -32,18 +32,19 @@ const Layout: Layout = function ({ state, context, children, innerHTML }) {
             <div className="header-meta">
               <span className={`connection-status ${ctx.isOffline ? 'offline' : ctx.connected ? 'online' : 'disconnected'}`}>
                 <span className="status-dot" />
-                {ctx.isOffline ? 'Offline' : ctx.connected ? 'Connected' : 'Disconnected'}
+                <span className="label-text">{ctx.isOffline ? 'Offline' : ctx.connected ? 'Connected' : 'Disconnected'}</span>
               </span>
               {ctx.connected && (
                 <>
                   <span className="separator">{'\u00B7'}</span>
-                  <span className="last-fetched">Updated: {formatLastFetched(ctx.lastFetchedAt)}</span>
+                  <span className="last-fetched">{formatLastFetched(ctx.lastFetchedAt)}</span>
                 </>
               )}
               {ctx.activeRunCount > 0 && (
                 <span className="active-indicator">
                   <span className="pulse" />
-                  {ctx.activeRunCount} active
+                  <span className="label-text">{ctx.activeRunCount} active</span>
+                  <span className="label-icon">{ctx.activeRunCount}</span>
                 </span>
               )}
             </div>
@@ -51,11 +52,20 @@ const Layout: Layout = function ({ state, context, children, innerHTML }) {
         </div>
         <div className="header-right">
           <nav className="tab-nav">
-            <a href="/" className={`tab ${isDashboard ? 'active' : ''}`}>Dashboard</a>
-            <a href="/settings" className={`tab ${isSettings ? 'active' : ''}`}>Settings</a>
+            <a href="/" className={`tab ${isDashboard ? 'active' : ''}`} title="Dashboard">
+              <span className="tab-icon">{'\u2630'}</span>
+              <span className="tab-label">Dashboard</span>
+            </a>
+            <a href="/settings" className={`tab ${isSettings ? 'active' : ''}`} title="Settings">
+              <span className="tab-icon">{'\u2699'}</span>
+              <span className="tab-label">Settings</span>
+            </a>
           </nav>
           {ctx.authEnabled && (
-            <button className="layout-logout-btn logout-btn">Logout</button>
+            <button className="layout-logout-btn logout-btn" title="Logout">
+              <span className="tab-icon">{'\u2190'}</span>
+              <span className="tab-label">Logout</span>
+            </button>
           )}
         </div>
       </header>

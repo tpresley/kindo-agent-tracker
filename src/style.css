@@ -825,6 +825,8 @@ body {
   gap: 12px;
   padding: 12px 14px;
   transition: border-color 0.2s, background 0.1s;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .compact-panel:hover {
@@ -1005,6 +1007,120 @@ body {
 .disconnect-btn:hover {
   color: var(--color-danger);
   border-color: var(--color-danger);
+}
+
+/* ── Connection Inline ─────────────────────────────────────── */
+
+.connection-inline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.connection-inline .api-key-masked {
+  flex: 1;
+}
+
+/* ── Collapsible Section Header ────────────────────────────── */
+
+.collapsible-header {
+  cursor: pointer;
+  transition: background 0.1s;
+  margin: -24px;
+  padding: 24px;
+  border-radius: var(--radius);
+}
+
+.collapsible-header:hover {
+  background: var(--color-surface-2);
+}
+
+.collapsible-header .collapse-icon {
+  font-size: 0.75rem;
+  color: var(--color-text-dim);
+}
+
+.webhook-summary {
+  flex: 1;
+}
+
+.webhook-summary h2 {
+  margin-bottom: 2px;
+}
+
+.webhook-summary-info {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.webhook-expanded {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.webhook-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.webhook-toolbar .default-webhook-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+  flex: 1;
+}
+
+.webhook-toolbar .default-webhook-row .input-label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.add-wh-icon {
+  font-weight: 700;
+}
+
+@media (max-width: 480px) {
+  .add-wh-label {
+    display: none;
+  }
+
+  .webhook-toolbar {
+    gap: 8px;
+  }
+}
+
+/* ── Filter Selected Button ────────────────────────────────── */
+
+.filter-selected-btn {
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.filter-selected-btn:hover {
+  background: var(--color-surface-3);
+  border-color: var(--color-text-dim);
+}
+
+.filter-selected-btn.active {
+  background: var(--color-info-dim);
+  color: var(--color-info);
+  border-color: rgba(59, 130, 246, 0.3);
 }
 
 .connection-status.disconnected .status-dot {
@@ -1441,6 +1557,7 @@ body {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 16px 20px;
+  overflow: hidden;
 }
 
 .webhook-log-title {
@@ -1463,6 +1580,8 @@ body {
   padding: 6px 8px;
   border-radius: var(--radius-xs);
   font-size: 0.75rem;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .webhook-log-item.ok {
@@ -1597,30 +1716,79 @@ body {
   opacity: 0.5;
 }
 
+/* ── Mobile icon/label toggle ──────────────────────────────── */
+
+.tab-icon {
+  display: none;
+  font-size: 1.125rem;
+}
+
+.label-icon {
+  display: none;
+}
+
 /* ── Responsive ────────────────────────────────────────────── */
 
 @media (max-width: 640px) {
   .dashboard-header {
-    flex-direction: column;
-    gap: 12px;
-    padding: 14px 16px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+    align-items: center;
   }
 
-  .tab-nav {
-    width: 100%;
+  .header-logo {
+    width: 28px;
+    height: 28px;
+  }
+
+  .header-title {
+    font-size: 0.875rem;
+  }
+
+  .header-meta {
+    font-size: 0.6875rem;
+    gap: 5px;
+  }
+
+  /* Hide text labels, show icons */
+  .tab-label,
+  .label-text {
+    display: none;
+  }
+
+  .tab-icon,
+  .label-icon {
+    display: inline;
   }
 
   .tab {
-    flex: 1;
-    text-align: center;
+    padding: 6px 12px;
+    font-size: 1rem;
+  }
+
+  .logout-btn {
+    padding: 6px 10px;
+    font-size: 1rem;
+  }
+
+  .separator,
+  .last-fetched {
+    display: none;
+  }
+
+  .header-right {
+    gap: 6px;
+    margin-left: auto;
   }
 
   .dashboard-main {
-    padding: 16px;
+    padding: 12px;
   }
 
   .agent-header {
-    padding: 14px 16px;
+    padding: 12px 14px;
   }
 
   .run-header {
@@ -1640,5 +1808,40 @@ body {
   .connected-card {
     flex-direction: column;
     gap: 12px;
+  }
+
+  .compact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-content {
+    max-height: 90vh;
+  }
+
+  .modal-header {
+    padding: 16px;
+  }
+
+  .dashboard-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .webhook-log-item {
+    gap: 6px;
+    font-size: 0.6875rem;
+  }
+
+  .wl-time {
+    font-size: 0.6rem;
+  }
+
+  .wl-webhook {
+    display: none;
+  }
+
+  .wl-transition {
+    font-size: 0.6rem;
+    padding: 1px 4px;
   }
 }

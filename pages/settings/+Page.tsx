@@ -41,6 +41,8 @@ type State = {
   filterTriggers: boolean
   filterRecentRuns: boolean
   filterCreator: string
+  filterSelected: boolean
+  webhooksExpanded: boolean
   webhookFormOpen: boolean
   editingWebhookId: string | null
   wfName: string
@@ -79,6 +81,8 @@ type Actions = {
   WF_PRESET: string
   WF_SAVE: Event
   WF_CANCEL: Event
+  TOGGLE_WEBHOOKS: Event
+  TOGGLE_FILTER_SELECTED: Event
 }
 
 type Page = Component<State, {}, AppDrivers, Actions, {}, AppContext>
@@ -126,28 +130,29 @@ const Page: Page = function ({ state, context }) {
   const error: string | null = ctx.error
   const isConfigured = !!apiKey
 
-  const creators = getCreators(allAgents)
-  const filtered = filterAgents(allAgents, state.searchQuery, state.filterCreator)
   const selectedSet = new Set(selectedIds)
+  const creators = getCreators(allAgents)
+  const agentsToShow = state.filterSelected
+    ? allAgents.filter(a => selectedSet.has(a.agentId))
+    : allAgents
+  const filtered = filterAgents(agentsToShow, state.searchQuery, state.filterCreator)
+  const defaultWebhook = webhooks.find(w => w.id === defaultWebhookId)
 
   return (
     <div className="settings-page">
       {/* ── Connection Section ────────────────────────── */}
       <section className="settings-section">
-        <h2>Connection</h2>
         {isConfigured ? (
-          <div className="connection-card connected-card">
-            <div className="connection-info">
-              <span className={`connection-status ${connected ? 'online' : 'disconnected'}`}>
-                <span className="status-dot" />
-                {connected ? 'Connected' : 'Disconnected'}
-              </span>
-              <span className="api-key-masked">Key: {'*'.repeat(8)}...{apiKey.slice(-6)}</span>
-            </div>
+          <div className="connection-inline">
+            <span className={`connection-status ${connected ? 'online' : 'disconnected'}`}>
+              <span className="status-dot" />
+            </span>
+            <span className="api-key-masked">{'*'.repeat(8)}...{apiKey.slice(-6)}</span>
             <button className="disconnect-btn">Disconnect</button>
           </div>
         ) : (
-          <div className="connection-card">
+          <div>
+            <h2>Connection</h2>
             <div className="setup-form">
               <label className="input-label" for="api-key">API Key</label>
               <input type="password" id="api-key" className="api-key-input" placeholder="Enter your Kindo API key..." value={state.apiKeyInput} />
@@ -162,66 +167,80 @@ const Page: Page = function ({ state, context }) {
         {error && <div className="error-message">{error}</div>}
       </section>
 
-      {/* ── Webhooks Section ─────────────────────────── */}
+      {/* ── Webhooks Section (collapsible) ────────────── */}
       {isConfigured && (
         <section className="settings-section">
-          <div className="section-header">
-            <h2>Webhooks</h2>
-            <button className="add-webhook-btn">+ Add Webhook</button>
+          <div className="section-header collapsible-header toggle-webhooks">
+            <div className="webhook-summary">
+              <h2>Webhooks</h2>
+              <span className="webhook-summary-info">
+                {webhooks.length === 0
+                  ? 'None configured'
+                  : `${webhooks.length} configured${defaultWebhook ? ` \u00B7 Default: ${defaultWebhook.name}` : ''}`}
+              </span>
+            </div>
+            <span className="collapse-icon">{state.webhooksExpanded ? '\u25BC' : '\u25B6'}</span>
           </div>
-          {webhooks.length > 0 && (
-            <div className="default-webhook-row">
-              <label className="input-label">Default webhook</label>
-              <select className="default-webhook-select" value={defaultWebhookId || 'none'}>
-                <option value="none">None</option>
-                {webhooks.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-              </select>
-              <span className="input-hint">Applied to all monitored agents unless overridden</span>
-            </div>
-          )}
-          {webhooks.length > 0 && (
-            <div className="webhook-list">
-              {webhooks.map(webhook => (
-                <div className={classes('webhook-item', { disabled: !webhook.enabled })} key={webhook.id}>
-                  <div className="webhook-item-info">
-                    <span className={`webhook-status-dot ${webhook.enabled ? 'active' : ''}`} />
-                    <span className="webhook-item-name">{webhook.name}</span>
-                    <span className="webhook-item-url">{webhook.url}</span>
-                    <span className="webhook-item-method">{webhook.method}</span>
-                    {webhook.notifyOnRecovery && <span className="webhook-recovery-badge">+recovery</span>}
+
+          {state.webhooksExpanded && (
+            <div className="webhook-expanded">
+              <div className="webhook-toolbar">
+                {webhooks.length > 0 && (
+                  <div className="default-webhook-row">
+                    <label className="input-label">Default:</label>
+                    <select className="default-webhook-select" value={defaultWebhookId || 'none'}>
+                      <option value="none">None</option>
+                      {webhooks.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                    </select>
                   </div>
-                  <div className="webhook-item-actions">
-                    <button className="wh-action-btn webhook-test-btn" data-webhookid={webhook.id}>Test</button>
-                    <button className="wh-action-btn webhook-edit-btn" data-webhookid={webhook.id}>Edit</button>
-                    <button className="wh-action-btn webhook-toggle-btn" data-webhookid={webhook.id}>{webhook.enabled ? 'Disable' : 'Enable'}</button>
-                    <button className="wh-action-btn webhook-delete-btn danger" data-webhookid={webhook.id}>Delete</button>
-                  </div>
-                  {testResults[webhook.id] && (
-                    <div className={`webhook-test-result ${testResults[webhook.id].success ? 'ok' : 'fail'}`}>
-                      {testResults[webhook.id].success ? `OK (${testResults[webhook.id].httpStatus})` : `Failed: ${testResults[webhook.id].error || testResults[webhook.id].httpStatus}`}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          {webhooks.length === 0 && !state.webhookFormOpen && (
-            <p className="input-hint">No webhooks configured. Add one to get notified on agent failures.</p>
-          )}
-          {state.webhookFormOpen && (
-            <div className="webhook-form">
-              <h3>{state.editingWebhookId ? 'Edit Webhook' : 'New Webhook'}</h3>
-              <div className="webhook-form-row"><label className="input-label">Name</label><input className="wf-name wf-input" value={state.wfName} placeholder="e.g. Slack #alerts" /></div>
-              <div className="webhook-form-row"><label className="input-label">Preset</label><select className="wf-preset wf-select" value={state.wfPreset}><option value="generic">Generic JSON</option><option value="slack">Slack</option><option value="custom">Custom</option></select></div>
-              <div className="webhook-form-row"><label className="input-label">URL</label><input className="wf-url wf-input" value={state.wfUrl} placeholder="https://hooks.slack.com/..." /></div>
-              <div className="webhook-form-row"><label className="input-label">Method</label><select className="wf-method wf-select" value={state.wfMethod}><option value="POST">POST</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option></select></div>
-              <div className="webhook-form-row"><label className="input-label">Headers (JSON)</label><textarea className="wf-headers webhook-textarea" value={state.wfHeaders} rows="2" /></div>
-              <div className="webhook-form-row"><label className="input-label">Body Template</label><textarea className="wf-body webhook-textarea" value={state.wfBodyTemplate} rows="6" /><p className="input-hint">Variables: {'{{agentId}}'}, {'{{agentName}}'}, {'{{runId}}'}, {'{{status}}'}, {'{{previousStatus}}'}, {'{{createdAt}}'}, {'{{endedAt}}'}, {'{{duration}}'}, {'{{runResult}}'}, {'{{dashboardUrl}}'}</p></div>
-              <div className="webhook-form-row"><label className="webhook-checkbox-label"><input type="checkbox" className="wf-recovery" checked={state.wfNotifyOnRecovery} />Notify on recovery (failure {'\u2192'} success)</label></div>
-              <div className="webhook-form-actions">
-                <button className="submit-key-btn wf-save-btn" disabled={!(state.wfName || '').trim() || !(state.wfUrl || '').trim()}>{state.editingWebhookId ? 'Update' : 'Create'}</button>
-                <button className="disconnect-btn wf-cancel-btn">Cancel</button>
+                )}
+                <button className="add-webhook-btn">
+                  <span className="add-wh-icon">+</span>
+                  <span className="add-wh-label"> Add Webhook</span>
+                </button>
               </div>
+              {webhooks.length > 0 && (
+                <div className="webhook-list">
+                  {webhooks.map(webhook => (
+                    <div className={classes('webhook-item', { disabled: !webhook.enabled })} key={webhook.id}>
+                      <div className="webhook-item-info">
+                        <span className={`webhook-status-dot ${webhook.enabled ? 'active' : ''}`} />
+                        <span className="webhook-item-name">{webhook.name}</span>
+                        <span className="webhook-item-url">{webhook.url}</span>
+                        <span className="webhook-item-method">{webhook.method}</span>
+                        {webhook.notifyOnRecovery && <span className="webhook-recovery-badge">+recovery</span>}
+                      </div>
+                      <div className="webhook-item-actions">
+                        <button className="wh-action-btn webhook-test-btn" data-webhookid={webhook.id}>Test</button>
+                        <button className="wh-action-btn webhook-edit-btn" data-webhookid={webhook.id}>Edit</button>
+                        <button className="wh-action-btn webhook-toggle-btn" data-webhookid={webhook.id}>{webhook.enabled ? 'Disable' : 'Enable'}</button>
+                        <button className="wh-action-btn webhook-delete-btn danger" data-webhookid={webhook.id}>Delete</button>
+                      </div>
+                      {testResults[webhook.id] && (
+                        <div className={`webhook-test-result ${testResults[webhook.id].success ? 'ok' : 'fail'}`}>
+                          {testResults[webhook.id].success ? `OK (${testResults[webhook.id].httpStatus})` : `Failed: ${testResults[webhook.id].error || testResults[webhook.id].httpStatus}`}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {state.webhookFormOpen && (
+                <div className="webhook-form">
+                  <h3>{state.editingWebhookId ? 'Edit Webhook' : 'New Webhook'}</h3>
+                  <div className="webhook-form-row"><label className="input-label">Name</label><input className="wf-name wf-input" value={state.wfName} placeholder="e.g. Slack #alerts" /></div>
+                  <div className="webhook-form-row"><label className="input-label">Preset</label><select className="wf-preset wf-select" value={state.wfPreset}><option value="generic">Generic JSON</option><option value="slack">Slack</option><option value="custom">Custom</option></select></div>
+                  <div className="webhook-form-row"><label className="input-label">URL</label><input className="wf-url wf-input" value={state.wfUrl} placeholder="https://hooks.slack.com/..." /></div>
+                  <div className="webhook-form-row"><label className="input-label">Method</label><select className="wf-method wf-select" value={state.wfMethod}><option value="POST">POST</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option></select></div>
+                  <div className="webhook-form-row"><label className="input-label">Headers (JSON)</label><textarea className="wf-headers webhook-textarea" value={state.wfHeaders} rows="2" /></div>
+                  <div className="webhook-form-row"><label className="input-label">Body Template</label><textarea className="wf-body webhook-textarea" value={state.wfBodyTemplate} rows="6" /><p className="input-hint">Variables: {'{{agentId}}'}, {'{{agentName}}'}, {'{{runId}}'}, {'{{status}}'}, {'{{previousStatus}}'}, {'{{createdAt}}'}, {'{{endedAt}}'}, {'{{duration}}'}, {'{{runResult}}'}, {'{{dashboardUrl}}'}</p></div>
+                  <div className="webhook-form-row"><label className="webhook-checkbox-label"><input type="checkbox" className="wf-recovery" checked={state.wfNotifyOnRecovery} />Notify on recovery (failure {'\u2192'} success)</label></div>
+                  <div className="webhook-form-actions">
+                    <button className="submit-key-btn wf-save-btn" disabled={!(state.wfName || '').trim() || !(state.wfUrl || '').trim()}>{state.editingWebhookId ? 'Update' : 'Create'}</button>
+                    <button className="disconnect-btn wf-cancel-btn">Cancel</button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -245,6 +264,9 @@ const Page: Page = function ({ state, context }) {
                   <option value="all">All creators</option>
                   {creators.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
+                <button className={classes('filter-selected-btn toggle-filter-selected', { active: state.filterSelected })}>
+                  {state.filterSelected ? `Selected (${selectedIds.length})` : 'Selected only'}
+                </button>
                 <div className="bulk-actions">
                   <button className="select-all-btn">Select filtered</button>
                   <button className="deselect-all-btn">Deselect all</button>
@@ -286,8 +308,8 @@ const Page: Page = function ({ state, context }) {
 }
 
 Page.initialState = {
-  apiKeyInput: '', searchQuery: '', filterTriggers: false, filterRecentRuns: false, filterCreator: '',
-  webhookFormOpen: false, editingWebhookId: null,
+  apiKeyInput: '', searchQuery: '', filterTriggers: false, filterRecentRuns: false, filterCreator: '', filterSelected: false,
+  webhooksExpanded: false, webhookFormOpen: false, editingWebhookId: null,
   wfName: '', wfUrl: '', wfMethod: 'POST', wfHeaders: '{}',
   wfBodyTemplate: PRESET_TEMPLATES.generic.bodyTemplate,
   wfNotifyOnRecovery: true, wfPreset: 'generic' as WebhookPreset,
@@ -320,6 +342,8 @@ Page.intent = ({ DOM }) => ({
   WF_PRESET:                DOM.input('.wf-preset').value(),
   WF_SAVE:                  DOM.click('.wf-save-btn'),
   WF_CANCEL:                DOM.click('.wf-cancel-btn'),
+  TOGGLE_WEBHOOKS:          DOM.click('.toggle-webhooks'),
+  TOGGLE_FILTER_SELECTED:   DOM.click('.toggle-filter-selected'),
 })
 
 Page.model = {
@@ -389,7 +413,7 @@ Page.model = {
 
   // ── Webhook CRUD ─────────────────────────────────
 
-  ADD_WEBHOOK: (state) => ({ ...state, ...emptyFormState() }),
+  ADD_WEBHOOK: (state) => ({ ...state, ...emptyFormState(), webhooksExpanded: true }),
 
   EDIT_WEBHOOK: (state, webhookId, _next, { context }) => {
     const wh = (context.webhooks as Webhook[])?.find(w => w.id === webhookId)
@@ -492,6 +516,9 @@ Page.model = {
   },
 
   WF_CANCEL: (state) => ({ ...state, webhookFormOpen: false }),
+
+  TOGGLE_WEBHOOKS: (state) => ({ ...state, webhooksExpanded: !state.webhooksExpanded }),
+  TOGGLE_FILTER_SELECTED: (state) => ({ ...state, filterSelected: !state.filterSelected }),
 }
 
 export default Page
