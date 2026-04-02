@@ -34,8 +34,15 @@ const listeners = new Set<(msg: WsServerMessage) => void>()
 // ── Broadcast to connected clients ─────────────────────────
 
 function broadcast(msg: WsServerMessage) {
-  // Cache agentData for new clients
-  if (msg.type === 'agentData') lastPollResult = msg
+  if (msg.type === 'agentData') {
+    // Cache a lightweight copy for new clients (strip run results to save memory)
+    const lightRuns: Record<string, any> = {}
+    for (const [id, run] of Object.entries((msg as any).runs)) {
+      const { result, ...rest } = run as any
+      lightRuns[id] = rest
+    }
+    lastPollResult = { ...msg, runs: lightRuns } as any
+  }
   for (const fn of listeners) {
     try { fn(msg) } catch { /* ignore dead listeners */ }
   }

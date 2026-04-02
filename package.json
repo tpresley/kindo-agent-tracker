@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node build-server.mjs",
     "preview": "vite preview",
-    "server:prod": "tsx server/index.ts"
+    "server:prod": "node dist/server-entry.mjs",
+    "server:dev": "tsx server/index.ts"
   },
   "dependencies": {
     "@types/better-sqlite3": "^7.6.13",
@@ -22,6 +23,7 @@
     "@types/compression": "^1.7.5",
     "@types/express": "^5.0.2",
     "@types/ws": "^8.18.1",
+    "esbuild": "^0.27.7",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.3"
