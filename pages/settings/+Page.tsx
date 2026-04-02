@@ -147,13 +147,13 @@ const Page: Page = function ({ state, context }) {
         ) : (
           <div className="connection-card">
             <div className="setup-form">
-              <label className="input-label" attrs={{ for: 'api-key' }}>API Key</label>
+              <label className="input-label" for="api-key">API Key</label>
               <input type="password" id="api-key" className="api-key-input" placeholder="Enter your Kindo API key..." value={state.apiKeyInput} />
               <p className="input-hint">
                 Find your API key at{' '}
                 <a href="https://app.kindo.ai/settings/api" target="_blank" rel="noopener">app.kindo.ai/settings/api</a>
               </p>
-              <button className="submit-key-btn" attrs={{ disabled: !(state.apiKeyInput || '').trim() || isOffline }}>Connect</button>
+              <button className="submit-key-btn" disabled={!(state.apiKeyInput || '').trim() || isOffline}>Connect</button>
             </div>
           </div>
         )}
@@ -189,10 +189,10 @@ const Page: Page = function ({ state, context }) {
                     {webhook.notifyOnRecovery && <span className="webhook-recovery-badge">+recovery</span>}
                   </div>
                   <div className="webhook-item-actions">
-                    <button className="wh-action-btn webhook-test-btn" attrs={{ 'data-webhookid': webhook.id }}>Test</button>
-                    <button className="wh-action-btn webhook-edit-btn" attrs={{ 'data-webhookid': webhook.id }}>Edit</button>
-                    <button className="wh-action-btn webhook-toggle-btn" attrs={{ 'data-webhookid': webhook.id }}>{webhook.enabled ? 'Disable' : 'Enable'}</button>
-                    <button className="wh-action-btn webhook-delete-btn danger" attrs={{ 'data-webhookid': webhook.id }}>Delete</button>
+                    <button className="wh-action-btn webhook-test-btn" data-webhookid={webhook.id}>Test</button>
+                    <button className="wh-action-btn webhook-edit-btn" data-webhookid={webhook.id}>Edit</button>
+                    <button className="wh-action-btn webhook-toggle-btn" data-webhookid={webhook.id}>{webhook.enabled ? 'Disable' : 'Enable'}</button>
+                    <button className="wh-action-btn webhook-delete-btn danger" data-webhookid={webhook.id}>Delete</button>
                   </div>
                   {testResults[webhook.id] && (
                     <div className={`webhook-test-result ${testResults[webhook.id].success ? 'ok' : 'fail'}`}>
@@ -213,11 +213,11 @@ const Page: Page = function ({ state, context }) {
               <div className="webhook-form-row"><label className="input-label">Preset</label><select className="wf-preset wf-select" value={state.wfPreset}><option value="generic">Generic JSON</option><option value="slack">Slack</option><option value="custom">Custom</option></select></div>
               <div className="webhook-form-row"><label className="input-label">URL</label><input className="wf-url wf-input" value={state.wfUrl} placeholder="https://hooks.slack.com/..." /></div>
               <div className="webhook-form-row"><label className="input-label">Method</label><select className="wf-method wf-select" value={state.wfMethod}><option value="POST">POST</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option></select></div>
-              <div className="webhook-form-row"><label className="input-label">Headers (JSON)</label><textarea className="wf-headers webhook-textarea" value={state.wfHeaders} attrs={{ rows: '2' }} /></div>
-              <div className="webhook-form-row"><label className="input-label">Body Template</label><textarea className="wf-body webhook-textarea" value={state.wfBodyTemplate} attrs={{ rows: '6' }} /><p className="input-hint">Variables: {'{{agentId}}'}, {'{{agentName}}'}, {'{{runId}}'}, {'{{status}}'}, {'{{previousStatus}}'}, {'{{createdAt}}'}, {'{{endedAt}}'}, {'{{duration}}'}, {'{{runResult}}'}, {'{{dashboardUrl}}'}</p></div>
-              <div className="webhook-form-row"><label className="webhook-checkbox-label"><input type="checkbox" className="wf-recovery" attrs={{ checked: state.wfNotifyOnRecovery ? '' : undefined }} />Notify on recovery (failure {'\u2192'} success)</label></div>
+              <div className="webhook-form-row"><label className="input-label">Headers (JSON)</label><textarea className="wf-headers webhook-textarea" value={state.wfHeaders} rows="2" /></div>
+              <div className="webhook-form-row"><label className="input-label">Body Template</label><textarea className="wf-body webhook-textarea" value={state.wfBodyTemplate} rows="6" /><p className="input-hint">Variables: {'{{agentId}}'}, {'{{agentName}}'}, {'{{runId}}'}, {'{{status}}'}, {'{{previousStatus}}'}, {'{{createdAt}}'}, {'{{endedAt}}'}, {'{{duration}}'}, {'{{runResult}}'}, {'{{dashboardUrl}}'}</p></div>
+              <div className="webhook-form-row"><label className="webhook-checkbox-label"><input type="checkbox" className="wf-recovery" checked={state.wfNotifyOnRecovery} />Notify on recovery (failure {'\u2192'} success)</label></div>
               <div className="webhook-form-actions">
-                <button className="submit-key-btn wf-save-btn" attrs={{ disabled: !(state.wfName || '').trim() || !(state.wfUrl || '').trim() }}>{state.editingWebhookId ? 'Update' : 'Create'}</button>
+                <button className="submit-key-btn wf-save-btn" disabled={!(state.wfName || '').trim() || !(state.wfUrl || '').trim()}>{state.editingWebhookId ? 'Update' : 'Create'}</button>
                 <button className="disconnect-btn wf-cancel-btn">Cancel</button>
               </div>
             </div>
@@ -255,7 +255,7 @@ const Page: Page = function ({ state, context }) {
                   const whValue = agentWh === undefined ? 'default' : (agentWh.length === 0 ? 'none' : agentWh[0])
                   return (
                     <div key={agent.agentId} className={classes('agent-picker-item', { selected: isSelected })}>
-                      <button className="agent-toggle-btn" attrs={{ 'data-agentid': agent.agentId }}>
+                      <button className="agent-toggle-btn" data-agentid={agent.agentId}>
                         <span className={`checkbox ${isSelected ? 'checked' : ''}`}>{isSelected ? '\u2713' : ''}</span>
                       </button>
                       <div className="agent-picker-info">
@@ -264,7 +264,7 @@ const Page: Page = function ({ state, context }) {
                         <div className="agent-picker-meta"><span className="meta-creator">{agent.creatorName}</span></div>
                       </div>
                       {webhooks.length > 0 && isSelected && (
-                        <select className="agent-webhook-select" attrs={{ 'data-agentid': agent.agentId }} value={whValue}>
+                        <select className="agent-webhook-select" data-agentid={agent.agentId} value={whValue}>
                           <option value="default">Default</option>
                           <option value="none">No webhook</option>
                           {webhooks.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}

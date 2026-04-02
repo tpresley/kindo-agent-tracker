@@ -97,7 +97,7 @@ const Wrapper: Wrapper = function ({ state, children, innerHTML }) {
               <label className="input-label">Password</label>
               <input type="password" className="login-password-input api-key-input" placeholder="Password" value={state.loginPassword} />
               {state.loginError && <div className="error-message">{state.loginError}</div>}
-              <button className="login-submit-btn submit-key-btn" attrs={{ disabled: !state.loginUsername.trim() || !state.loginPassword.trim() }}>Sign In</button>
+              <button className="login-submit-btn submit-key-btn" disabled={!state.loginUsername.trim() || !state.loginPassword.trim()}>Sign In</button>
             </div>
           </div>
         </div>

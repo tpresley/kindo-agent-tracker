@@ -73,7 +73,7 @@ function renderAgentCard(
 
   return (
     <div className={classes('agent-card', { 'has-active': hasActive })} key={agent.agentId}>
-      <div className="agent-header toggle-agent" attrs={{ 'data-agentid': agent.agentId }}>
+      <div className="agent-header toggle-agent" data-agentid={agent.agentId}>
         <div className="agent-info">
           <div className="agent-name-row">
             <h3 className="agent-name">{agent.name || 'Unnamed Agent'}</h3>
@@ -204,14 +204,14 @@ const Page: Page = function ({ state, context }) {
       )}
 
       <div className="dashboard-toolbar">
-        <button className="refresh-btn" attrs={{ disabled: loading || !connected }}>
+        <button className="refresh-btn" disabled={loading || !connected}>
           Refresh
         </button>
         <div className="view-toggle">
-          <button className={classes('view-btn toggle-view', { active: !state.compactView })} attrs={{ title: 'Detailed view' }}>
+          <button className={classes('view-btn toggle-view', { active: !state.compactView })} title="Detailed view">
             {'\u2630'}
           </button>
-          <button className={classes('view-btn toggle-view', { active: state.compactView })} attrs={{ title: 'Compact view' }}>
+          <button className={classes('view-btn toggle-view', { active: state.compactView })} title="Compact view">
             {'\u25A6'}
           </button>
         </div>
