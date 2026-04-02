@@ -353,12 +353,12 @@ Page.model = {
   UPDATE_CREATOR_FILTER: (state, value) => ({ ...state, filterCreator: value === 'all' ? '' : value }),
 
   TOGGLE_AGENT: {
-    EFFECT: (_state, agentId, _next: any, { context }: any) => {
+    EFFECT: (_state, agentId, _next, { context }) => {
       const current: string[] = context.selectedAgentIds || []
       const updated = current.includes(agentId) ? current.filter((id: string) => id !== agentId) : [...current, agentId]
       saveSelectedAgentIds(updated)
     },
-    EVENTS: (_state, agentId, _next: any, { context }: any) => {
+    EVENTS: (_state, agentId, _next, { context }) => {
       const current: string[] = context.selectedAgentIds || []
       const updated = current.includes(agentId) ? current.filter((id: string) => id !== agentId) : [...current, agentId]
       return { type: 'SELECTION_CHANGED', data: updated }
@@ -366,14 +366,14 @@ Page.model = {
   },
 
   SELECT_ALL_FILTERED: {
-    EFFECT: (state, _data, _next: any, { context }: any) => {
+    EFFECT: (state, _data, _next, { context }) => {
       const allAgents: AgentSummary[] = context.allAgents || []
       const current: string[] = context.selectedAgentIds || []
       const filtered = filterAgents(allAgents, state.searchQuery, state.filterCreator)
       const merged = new Set([...current, ...filtered.map(a => a.agentId)])
       saveSelectedAgentIds(Array.from(merged))
     },
-    EVENTS: (state, _data, _next: any, { context }: any) => {
+    EVENTS: (state, _data, _next, { context }) => {
       const allAgents: AgentSummary[] = context.allAgents || []
       const current: string[] = context.selectedAgentIds || []
       const filtered = filterAgents(allAgents, state.searchQuery, state.filterCreator)
@@ -391,7 +391,7 @@ Page.model = {
 
   ADD_WEBHOOK: (state) => ({ ...state, ...emptyFormState() }),
 
-  EDIT_WEBHOOK: (state, webhookId, _next: any, { context }: any) => {
+  EDIT_WEBHOOK: (state, webhookId, _next, { context }) => {
     const wh = (context.webhooks as Webhook[])?.find(w => w.id === webhookId)
     if (!wh) return state
     return {
@@ -403,7 +403,7 @@ Page.model = {
   },
 
   DELETE_WEBHOOK: {
-    EFFECT: (_state, webhookId, _next: any, { context }: any) => {
+    EFFECT: (_state, webhookId, _next, { context }) => {
       const current = (context.webhooks as Webhook[]) || []
       saveWebhooks(current.filter(w => w.id !== webhookId))
       const map = loadAgentWebhookMap()
@@ -424,7 +424,7 @@ Page.model = {
   },
 
   TEST_WEBHOOK: {
-    WS: (_state, webhookId, _next: any, { context }: any): WsCommand | undefined => {
+    WS: (_state, webhookId, _next, { context }): WsCommand | undefined => {
       const wh = (context.webhooks as Webhook[])?.find(w => w.id === webhookId)
       if (!wh) return undefined
       return { action: 'send', msg: { type: 'testWebhook', webhook: wh } }

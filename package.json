@@ -14,7 +14,7 @@
     "better-sqlite3": "^12.8.0",
     "compression": "^1.8.0",
     "express": "^5.1.0",
-    "sygnal": "^5.3.4",
+    "sygnal": "^5.3.6",
     "vike": "^0.4.255",
     "ws": "^8.18.0"
   },
