@@ -1,7 +1,7 @@
 import { classes } from 'sygnal'
 import type { Component } from 'sygnal'
 import type { Agent, Run, WebhookFireLog } from '../../server/types.js'
-import { sendWs } from '../../src/ws-bridge.js'
+import type { WsCommand } from '../../src/drivers/ws.js'
 
 type State = {
   collapsedAgents: Record<string, boolean>
@@ -284,9 +284,7 @@ Page.model = {
   }),
 
   REFRESH: {
-    EFFECT: () => {
-      sendWs({ type: 'refresh' })
-    },
+    WS: (): WsCommand => ({ action: 'send', msg: { type: 'refresh' } }),
   },
 
   TOGGLE_VIEW: (state) => {

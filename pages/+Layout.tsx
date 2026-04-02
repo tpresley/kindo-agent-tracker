@@ -74,16 +74,7 @@ Layout.intent = ({ DOM }) => ({
 
 Layout.model = {
   LOGOUT_CLICK: {
-    EFFECT: () => {
-      fetch('/api/auth/logout', { method: 'POST' })
-        .then(() => {
-          // Force a hard reload to clear Vike's client-side state
-          window.location.reload()
-        })
-        .catch(() => {
-          window.location.reload()
-        })
-    },
+    EVENTS: () => ({ type: 'LOGOUT' }),
   },
 }
 
