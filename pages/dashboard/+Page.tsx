@@ -234,7 +234,7 @@ const Page: Page = function ({ state, context }) {
       ) : (
         <div className="agents-grid">
           {agentCards.map(({ agent, runs: agentRuns }) =>
-            renderAgentCard(agent, agentRuns, !!state.collapsedAgents[agent.agentId], models)
+            renderAgentCard(agent, agentRuns, !!(state.collapsedAgents || {})[agent.agentId], models)
           )}
         </div>
       )}
