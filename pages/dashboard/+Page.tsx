@@ -7,6 +7,7 @@ import type { WsCommand } from '../../src/drivers/ws.js'
 type State = {
   collapsedAgents: Record<string, boolean>
   compactView: boolean
+  modalAgentId: string | null
 }
 
 type Actions = {
@@ -14,9 +15,13 @@ type Actions = {
   TOGGLE_AGENT: string
   REFRESH: Event
   TOGGLE_VIEW: Event
+  OPEN_MODAL: string
+  CLOSE_MODAL: Event
 }
 
 type Page = Component<State, {}, AppDrivers, Actions, {}, AppContext>
+
+const KINDO_RUN_URL = 'https://app.kindo.ai/chat?workflowRunId='
 
 // ── Formatting helpers ─────────────────────────────────────
 
@@ -58,20 +63,34 @@ const statusIcons: Record<string, string> = {
   in_progress: '\u25CF', success: '\u2713', failure: '\u2717', cancelled: '\u2014',
 }
 
+// ── Run list (shared between card and modal) ───────────────
+
+function renderRunList(runs: Run[]) {
+  if (runs.length === 0) return <div className="no-runs">No recent runs</div>
+  return runs.map((run) => (
+    <a key={run.runId} className={classes('run-item', run.status)} href={`${KINDO_RUN_URL}${run.runId}`} target="_blank" rel="noopener">
+      <div className="run-header">
+        <span className={classes('status-badge', run.status)}>
+          {run.status === 'in_progress' && <span className="pulse" />}
+          <span className="status-icon">{statusIcons[run.status]}</span>
+          {statusLabels[run.status] || run.status}
+        </span>
+        <span className="run-time">{formatTime(run.createdAtUtc)}</span>
+        <span className="run-duration">{formatDuration(run.createdAtUtc, run.endedAtUtc)}</span>
+        <span className="run-link-icon">{'\u2197'}</span>
+      </div>
+    </a>
+  ))
+}
+
 // ── Render helpers ─────────────────────────────────────────
 
 function renderAgentCard(
-  agent: Agent,
-  runs: Run[],
-  collapsed: boolean,
-  models: Record<string, string>,
+  agent: Agent, runs: Run[], collapsed: boolean, models: Record<string, string>,
 ) {
   const activeCount = runs.filter((r) => r.status === 'in_progress').length
   const hasActive = activeCount > 0
-
-  const modelNames = (agent.modelsInUse || [])
-    .map((id) => models[id] || id)
-    .join(', ')
+  const modelNames = (agent.modelsInUse || []).map((id) => models[id] || id).join(', ')
 
   return (
     <div className={classes('agent-card', { 'has-active': hasActive })} key={agent.agentId}>
@@ -94,46 +113,26 @@ function renderAgentCard(
 
       {!collapsed && (
         <div className="runs-list">
-          {runs.length === 0 ? (
-            <div className="no-runs">No recent runs</div>
-          ) : (
-            runs.map((run) => (
-              <div key={run.runId} className={classes('run-item', run.status)}>
-                <div className="run-header">
-                  <span className={classes('status-badge', run.status)}>
-                    {run.status === 'in_progress' && <span className="pulse" />}
-                    <span className="status-icon">{statusIcons[run.status]}</span>
-                    {statusLabels[run.status] || run.status}
-                  </span>
-                  <span className="run-time">{formatTime(run.createdAtUtc)}</span>
-                  <span className="run-duration">{formatDuration(run.createdAtUtc, run.endedAtUtc)}</span>
-                </div>
-              </div>
-            ))
-          )}
+          {renderRunList(runs)}
         </div>
       )}
     </div>
   )
 }
 
-/** Determine the overall health status for an agent based on its most recent run. */
 function getAgentHealth(runs: Run[]): 'success' | 'failure' | 'in_progress' | 'cancelled' | 'none' {
   if (runs.length === 0) return 'none'
   return runs[0].status
 }
 
-function renderCompactPanel(
-  agent: Agent,
-  runs: Run[],
-) {
+function renderCompactPanel(agent: Agent, runs: Run[]) {
   const health = getAgentHealth(runs)
   const activeCount = runs.filter((r) => r.status === 'in_progress').length
   const failCount = runs.filter((r) => r.status === 'failure').length
   const successCount = runs.filter((r) => r.status === 'success').length
 
   return (
-    <div className={classes('compact-panel', health)} key={agent.agentId}>
+    <div className={classes('compact-panel', health, 'open-modal')} key={agent.agentId} data-agentid={agent.agentId}>
       <div className="compact-status-bar">
         <span className={classes('compact-dot', health)}>
           {health === 'in_progress' ? <span className="pulse" /> : ''}
@@ -149,6 +148,38 @@ function renderCompactPanel(
         </div>
       </div>
       <div className="compact-time">{formatRelativeTime(agent.lastRunAtUtc)}</div>
+    </div>
+  )
+}
+
+function renderModal(agent: Agent, runs: Run[], models: Record<string, string>) {
+  const modelNames = (agent.modelsInUse || []).map((id) => models[id] || id).join(', ')
+  const activeCount = runs.filter((r) => r.status === 'in_progress').length
+
+  return (
+    <div className="modal-backdrop close-modal">
+      <div className="modal-content">
+          <div className="modal-header">
+            <div>
+              <div className="agent-name-row">
+                <h2 className="modal-title">{agent.name || 'Unnamed Agent'}</h2>
+                {activeCount > 0 && <span className="active-badge">{activeCount} running</span>}
+                {agent.hasTriggers && <span className="trigger-badge">Triggered</span>}
+              </div>
+              {agent.description && <p className="agent-description">{agent.description}</p>}
+              <div className="agent-meta">
+                {modelNames && <span className="meta-item models">{modelNames}</span>}
+                <span className="meta-item last-run">Last run: {formatRelativeTime(agent.lastRunAtUtc)}</span>
+              </div>
+            </div>
+            <button className="modal-close-btn close-modal">{'\u2715'}</button>
+          </div>
+          <div className="modal-body">
+            <div className="runs-list">
+              {renderRunList(runs)}
+            </div>
+          </div>
+      </div>
     </div>
   )
 }
@@ -176,7 +207,6 @@ const Page: Page = function ({ state, context }) {
     )
   }
 
-  // Build agent cards with their runs inline
   const agentCards = agents.map((agent) => {
     const agentRuns = (agent.recentRunIds || [])
       .map((id) => runs[id])
@@ -184,6 +214,11 @@ const Page: Page = function ({ state, context }) {
       .sort((a, b) => new Date(b.createdAtUtc).getTime() - new Date(a.createdAtUtc).getTime())
     return { agent, runs: agentRuns }
   })
+
+  // Find modal agent
+  const modalAgent = state.modalAgentId
+    ? agentCards.find(({ agent }) => agent.agentId === state.modalAgentId)
+    : null
 
   return (
     <div>
@@ -239,6 +274,9 @@ const Page: Page = function ({ state, context }) {
         </div>
       )}
 
+      {/* Agent detail modal (compact view) */}
+      {modalAgent && renderModal(modalAgent.agent, modalAgent.runs, models)}
+
       {/* Webhook fire log */}
       {webhookLog.length > 0 && (
         <section className="webhook-log-section">
@@ -267,6 +305,7 @@ const Page: Page = function ({ state, context }) {
 Page.initialState = {
   collapsedAgents: {},
   compactView: false,
+  modalAgentId: null,
 }
 
 Page.intent = ({ DOM }) => ({
@@ -274,6 +313,8 @@ Page.intent = ({ DOM }) => ({
   TOGGLE_AGENT: DOM.click('.toggle-agent').data('agentid'),
   REFRESH: DOM.click('.refresh-btn'),
   TOGGLE_VIEW: DOM.click('.toggle-view'),
+  OPEN_MODAL: DOM.click('.open-modal').data('agentid'),
+  CLOSE_MODAL: DOM.click('.close-modal'),
 })
 
 Page.model = {
@@ -298,6 +339,10 @@ Page.model = {
     STATE: (state) => ({ ...state, compactView: !state.compactView }),
     EFFECT: (state) => { localStorage.setItem('kindo-tracker-compactView', String(!state.compactView)) },
   },
+
+  OPEN_MODAL: (state, agentId) => ({ ...state, modalAgentId: agentId }),
+
+  CLOSE_MODAL: (state) => ({ ...state, modalAgentId: null }),
 }
 
 export default Page

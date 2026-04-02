@@ -6,6 +6,11 @@
   padding: 0;
 }
 
+/* Eliminate 300ms tap delay on mobile */
+html {
+  touch-action: manipulation;
+}
+
 :root {
   --color-bg: #0f1117;
   --color-surface: #1a1d27;
@@ -596,10 +601,27 @@ body {
 .run-item {
   border-radius: var(--radius-xs);
   transition: background 0.1s;
+  text-decoration: none;
+  display: block;
+  color: inherit;
+  cursor: pointer;
 }
 
 .run-item:hover {
   background: var(--color-surface-2);
+}
+
+.run-link-icon {
+  font-size: 0.75rem;
+  color: var(--color-text-dim);
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.run-item:hover .run-link-icon {
+  opacity: 1;
+  color: var(--color-primary);
 }
 
 .run-header {
@@ -807,6 +829,7 @@ body {
 
 .compact-panel:hover {
   background: var(--color-surface-2);
+  cursor: pointer;
 }
 
 .compact-panel.failure {
@@ -1499,6 +1522,79 @@ body {
 
 .wl-result.fail {
   color: var(--color-danger);
+}
+
+/* ── Agent Detail Modal ─────────────────────────────────────── */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--color-border);
+  gap: 16px;
+}
+
+.modal-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1.125rem;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.modal-close-btn:hover {
+  color: var(--color-text);
+  background: var(--color-surface-2);
+}
+
+.modal-body {
+  padding: 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-body .runs-list {
+  border-top: none;
+}
+
+.modal-body .run-link-icon {
+  opacity: 0.5;
 }
 
 /* ── Responsive ────────────────────────────────────────────── */
