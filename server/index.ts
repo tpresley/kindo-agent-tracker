@@ -75,7 +75,7 @@ async function startServer() {
     res.status(statusCode).send(body)
   })
 
-  const server = app.listen(PORT, () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running at http://localhost:${PORT}`)
     if (isAuthEnabled()) {
       console.log('Authentication is ENABLED (KINDO_UN/KINDO_PW set)')
