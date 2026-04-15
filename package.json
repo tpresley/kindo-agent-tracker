@@ -16,7 +16,7 @@
     "compression": "^1.8.0",
     "express": "^5.1.0",
     "sygnal": "^5.3.7",
-    "vike": "^0.4.255",
+    "vike": "0.4.255",
     "ws": "^8.18.0"
   },
   "devDependencies": {

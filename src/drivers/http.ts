@@ -32,6 +32,7 @@ export function makeHttpDriver() {
 
     sink$.subscribe({
       next: (req) => {
+        if (!req || !req.url) return
         fetch(req.url, {
           method: req.method || 'GET',
           headers: req.headers,

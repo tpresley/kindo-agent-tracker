@@ -3,6 +3,7 @@ import type { Component } from 'sygnal'
 import type { AgentSummary, Webhook, WebhookPreset } from '../../server/types.js'
 import type { AppDrivers, AppContext } from '../../src/types.js'
 import type { WsCommand } from '../../src/drivers/ws.js'
+import { getTimezone, saveTimezone, getTimezoneOptions } from '../../src/time.js'
 import {
   saveApiKey,
   clearApiKey,
@@ -42,6 +43,7 @@ type State = {
   filterRecentRuns: boolean
   filterCreator: string
   filterSelected: boolean
+  timezone: string
   webhooksExpanded: boolean
   webhookFormOpen: boolean
   editingWebhookId: string | null
@@ -83,6 +85,7 @@ type Actions = {
   WF_CANCEL: Event
   TOGGLE_WEBHOOKS: Event
   TOGGLE_FILTER_SELECTED: Event
+  UPDATE_TIMEZONE: string
 }
 
 type Page = Component<State, {}, AppDrivers, Actions, {}, AppContext>
@@ -143,12 +146,21 @@ const Page: Page = function ({ state, context }) {
       {/* ── Connection Section ────────────────────────── */}
       <section className="settings-section">
         {isConfigured ? (
-          <div className="connection-inline">
-            <span className={`connection-status ${connected ? 'online' : 'disconnected'}`}>
-              <span className="status-dot" />
-            </span>
-            <span className="api-key-masked">{'*'.repeat(8)}...{apiKey.slice(-6)}</span>
-            <button className="disconnect-btn">Disconnect</button>
+          <div>
+            <div className="connection-inline">
+              <span className={`connection-status ${connected ? 'online' : 'disconnected'}`}>
+                <span className="status-dot" />
+              </span>
+              <span className="api-key-masked">{'*'.repeat(8)}...{apiKey.slice(-6)}</span>
+              <div className="timezone-select">
+                <select className="tz-selector" value={state.timezone}>
+                  {getTimezoneOptions().map(tz =>
+                    <option key={tz.value} value={tz.value}>{tz.label}</option>
+                  )}
+                </select>
+              </div>
+              <button className="disconnect-btn">Disconnect</button>
+            </div>
           </div>
         ) : (
           <div>
@@ -309,6 +321,7 @@ const Page: Page = function ({ state, context }) {
 
 Page.initialState = {
   apiKeyInput: '', searchQuery: '', filterTriggers: false, filterRecentRuns: false, filterCreator: '', filterSelected: false,
+  timezone: typeof window !== 'undefined' ? getTimezone() : 'UTC',
   webhooksExpanded: false, webhookFormOpen: false, editingWebhookId: null,
   wfName: '', wfUrl: '', wfMethod: 'POST', wfHeaders: '{}',
   wfBodyTemplate: PRESET_TEMPLATES.generic.bodyTemplate,
@@ -344,6 +357,7 @@ Page.intent = ({ DOM }) => ({
   WF_CANCEL:                DOM.click('.wf-cancel-btn'),
   TOGGLE_WEBHOOKS:          DOM.click('.toggle-webhooks'),
   TOGGLE_FILTER_SELECTED:   DOM.click('.toggle-filter-selected'),
+  UPDATE_TIMEZONE:          DOM.input('.tz-selector').value(),
 })
 
 Page.model = {
@@ -519,6 +533,11 @@ Page.model = {
 
   TOGGLE_WEBHOOKS: (state) => ({ ...state, webhooksExpanded: !state.webhooksExpanded }),
   TOGGLE_FILTER_SELECTED: (state) => ({ ...state, filterSelected: !state.filterSelected }),
+
+  UPDATE_TIMEZONE: {
+    STATE: (state, tz) => ({ ...state, timezone: tz }),
+    EFFECT: (_state, tz) => { saveTimezone(tz) },
+  },
 }
 
 export default Page

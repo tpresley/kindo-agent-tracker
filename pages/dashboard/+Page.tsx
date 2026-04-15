@@ -21,39 +21,9 @@ type Actions = {
 
 type Page = Component<State, {}, AppDrivers, Actions, {}, AppContext>
 
+import { formatTime, formatRelativeTime, formatDuration } from '../../src/time.js'
+
 const KINDO_RUN_URL = 'https://app.kindo.ai/chat?workflowRunId='
-
-// ── Formatting helpers ─────────────────────────────────────
-
-function formatRelativeTime(iso: string | null): string {
-  if (!iso) return 'Never'
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'Just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  const days = Math.floor(hrs / 24)
-  return `${days}d ago`
-}
-
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
-    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-  })
-}
-
-function formatDuration(start: string, end: string | null): string {
-  if (!end) return 'running...'
-  const ms = new Date(end).getTime() - new Date(start).getTime()
-  if (ms < 1000) return '<1s'
-  const secs = Math.floor(ms / 1000)
-  if (secs < 60) return `${secs}s`
-  const mins = Math.floor(secs / 60)
-  if (mins < 60) return `${mins}m ${secs % 60}s`
-  const hrs = Math.floor(mins / 60)
-  return `${hrs}h ${mins % 60}m`
-}
 
 const statusLabels: Record<string, string> = {
   in_progress: 'Running', success: 'Success', failure: 'Failed', cancelled: 'Cancelled',

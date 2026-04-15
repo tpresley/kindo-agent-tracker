@@ -1,20 +1,10 @@
 import type { Component } from 'sygnal'
 import type { AppDrivers, AppContext, VikeShellProps } from '../src/types.js'
+import { formatLastFetched } from '../src/time.js'
 
 type State = Record<string, never>
 type Actions = { LOGOUT_CLICK: Event }
 type Layout = Component<State, VikeShellProps, AppDrivers, Actions, {}, AppContext>
-
-function formatLastFetched(iso: string | null): string {
-  if (!iso) return 'Never'
-  const diff = Date.now() - new Date(iso).getTime()
-  const secs = Math.floor(diff / 1000)
-  if (secs < 10) return 'Just now'
-  if (secs < 60) return `${secs}s ago`
-  const mins = Math.floor(secs / 60)
-  if (mins < 60) return `${mins}m ago`
-  return new Date(iso).toLocaleTimeString()
-}
 
 const Layout: Layout = function ({ state, context, children, innerHTML }) {
   const ctx = context!

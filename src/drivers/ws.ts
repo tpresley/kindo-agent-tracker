@@ -166,6 +166,7 @@ export function makeWsDriver() {
   return function wsDriver(sink$: Stream<WsCommand>): WsSource {
     sink$.subscribe({
       next: (cmd) => {
+        if (!cmd) return
         switch (cmd.action) {
           case 'connect':
             doConnect(cmd.apiKey, cmd.selectedAgentIds)

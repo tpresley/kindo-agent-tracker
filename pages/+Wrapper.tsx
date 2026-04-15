@@ -219,7 +219,7 @@ Wrapper.intent = ({ DOM, WS, EVENTS, HTTP }: any) => ({
     ? xs.of(true as const)
     : xs.never(),
 
-  AUTH_STATUS: HTTP.select('auth-status'),
+  AUTH_STATUS: HTTP.select('auth-status').filter((r: any) => !!r),
 
   DISMISS_OVERRIDE: DOM.click('.dismiss-override-btn'),
 
@@ -229,12 +229,12 @@ Wrapper.intent = ({ DOM, WS, EVENTS, HTTP }: any) => ({
     DOM.click('.login-submit-btn'),
     DOM.keydown('.login-password-input').key().filter((k: string) => k === 'Enter'),
   ),
-  LOGIN_RESULT: HTTP.select('auth-login'),
+  LOGIN_RESULT: HTTP.select('auth-login').filter((r: any) => !!r),
 
   SELECTION_CHANGED: EVENTS.select('SELECTION_CHANGED'),
   WEBHOOKS_CHANGED:  EVENTS.select('WEBHOOKS_CHANGED'),
   LOGOUT_REQUEST:    EVENTS.select('LOGOUT'),
-  LOGOUT_DONE:       HTTP.select('auth-logout'),
+  LOGOUT_DONE:       HTTP.select('auth-logout').filter((r: any) => !!r),
 })
 
 Wrapper.model = {

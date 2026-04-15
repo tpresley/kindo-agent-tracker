@@ -1061,6 +1061,22 @@ body {
   flex: 1;
 }
 
+.timezone-select {
+  flex-shrink: 0;
+}
+
+.tz-selector {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  font-size: 0.75rem;
+  color: var(--color-text);
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+}
+
 /* ── Collapsible Section Header ────────────────────────────── */
 
 .collapsible-header {
