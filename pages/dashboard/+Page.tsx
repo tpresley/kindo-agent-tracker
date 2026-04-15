@@ -127,7 +127,8 @@ function renderModal(agent: Agent, runs: Run[], models: Record<string, string>) 
   const activeCount = runs.filter((r) => r.status === 'in_progress').length
 
   return (
-    <div className="modal-backdrop close-modal">
+    <div className="modal-backdrop">
+      <div className="modal-overlay close-modal"></div>
       <div className="modal-content">
           <div className="modal-header">
             <div>

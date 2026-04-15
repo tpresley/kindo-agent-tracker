@@ -1713,6 +1713,12 @@ body {
   backdrop-filter: blur(2px);
 }
 
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
 .modal-content {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -1723,6 +1729,8 @@ body {
   display: flex;
   flex-direction: column;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  position: relative;
+  z-index: 1;
 }
 
 .modal-header {
@@ -1770,6 +1778,139 @@ body {
 
 .modal-body .run-link-icon {
   opacity: 0.5;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border);
+}
+
+.webhook-modal .modal-body {
+  padding: 16px 24px;
+}
+
+.webhook-modal .webhook-form-row {
+  margin-bottom: 12px;
+}
+
+.wf-row-inline {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+/* ── Webhook Test Section ──────────────────────────────────── */
+
+.webhook-test-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.test-toggle-btn {
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.test-toggle-btn:hover {
+  background: var(--color-surface-3);
+}
+
+.test-toggle-btn.active {
+  background: var(--color-info-dim);
+  color: var(--color-info);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.test-preview {
+  margin-top: 12px;
+}
+
+.test-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.test-controls .wf-select {
+  flex: 1;
+  min-width: 120px;
+}
+
+.test-radio {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.test-radio input {
+  cursor: pointer;
+}
+
+.test-preview-body {
+  margin-bottom: 12px;
+}
+
+.test-output {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  padding: 10px 12px;
+  font-size: 0.75rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 4px;
+}
+
+.test-send-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.test-result-full {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.test-response-section {
+  margin-top: 4px;
+}
+
+.test-response-body {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  padding: 8px;
+  font-size: 0.6875rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--color-text-dim);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 100px;
+  overflow-y: auto;
+  margin-top: 6px;
 }
 
 /* ── Mobile icon/label toggle ──────────────────────────────── */

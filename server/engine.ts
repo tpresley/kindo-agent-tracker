@@ -105,16 +105,31 @@ async function fireWebhook(webhook: Webhook, body: string): Promise<{ httpStatus
   }
 }
 
-export async function fireTestWebhook(webhook: Webhook): Promise<{ httpStatus: number | null; success: boolean; error?: string }> {
-  const sampleVars: Record<string, string> = {
+export async function fireTestWebhook(webhook: Webhook, customVars?: Record<string, string>): Promise<{ httpStatus: number | null; success: boolean; error?: string; responseBody?: string }> {
+  const vars = customVars || {
     agentId: 'test-agent-id', agentName: 'Test Agent', runId: 'test-run-id',
     status: 'failure', previousStatus: 'success',
     createdAt: new Date().toISOString(), endedAt: new Date().toISOString(),
     duration: '2m 30s', runResult: 'Test webhook fired from Kindo Agent Tracker', dashboardUrl: '/',
   }
-  const body = resolveTemplate(webhook.bodyTemplate, sampleVars)
-  return fireWebhook(webhook, body)
+  const body = resolveTemplate(webhook.bodyTemplate, vars)
+  try {
+    const res = await fetch(webhook.url, {
+      method: webhook.method,
+      headers: { 'Content-Type': 'application/json', ...webhook.headers },
+      body,
+      signal: AbortSignal.timeout(10_000),
+    })
+    let responseBody = ''
+    try { responseBody = await res.text() } catch {}
+    return { httpStatus: res.status, success: res.ok, responseBody: responseBody.substring(0, 500) }
+  } catch (err: any) {
+    return { httpStatus: null, success: false, error: err.message || 'Request failed' }
+  }
 }
+
+/** Resolve a template with vars (exported for client-side preview). */
+export { resolveTemplate }
 
 function getMostRecentCompletedRun(agent: Agent, runs: Record<string, Run>): Run | null {
   const completedRuns = (agent.recentRunIds || [])

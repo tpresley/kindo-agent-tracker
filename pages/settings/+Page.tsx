@@ -54,6 +54,11 @@ type State = {
   wfBodyTemplate: string
   wfNotifyOnRecovery: boolean
   wfPreset: WebhookPreset
+  // Test preview state
+  testAgentId: string
+  testTransition: 'failure' | 'recovery'
+  testPreviewVisible: boolean
+  testSendResult: { success: boolean; httpStatus: number | null; responseBody?: string; error?: string } | null
 }
 
 type Actions = {
@@ -86,6 +91,11 @@ type Actions = {
   TOGGLE_WEBHOOKS: Event
   TOGGLE_FILTER_SELECTED: Event
   UPDATE_TIMEZONE: string
+  // Test actions
+  TEST_AGENT_SELECT: string
+  TEST_TRANSITION_SELECT: string
+  TOGGLE_TEST_PREVIEW: Event
+  SEND_TEST: Event
 }
 
 type Page = Component<State, {}, AppDrivers, Actions, {}, AppContext>
@@ -108,12 +118,33 @@ function filterAgents(agents: AgentSummary[], search: string, filterCreator: str
   return result
 }
 
+function resolveTemplate(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '')
+}
+
+function buildTestVars(agent: AgentSummary | undefined, transition: 'failure' | 'recovery'): Record<string, string> {
+  const now = new Date().toISOString()
+  return {
+    agentId: agent?.agentId || 'test-agent-id',
+    agentName: agent?.name || 'Test Agent',
+    runId: 'test-run-' + Date.now().toString(36),
+    status: transition === 'failure' ? 'failure' : 'success',
+    previousStatus: transition === 'failure' ? 'success' : 'failure',
+    createdAt: now,
+    endedAt: now,
+    duration: '2m 30s',
+    runResult: `Simulated ${transition} test from Kindo Agent Tracker`,
+    dashboardUrl: typeof window !== 'undefined' ? window.location.origin : '/',
+  }
+}
+
 function emptyFormState(): Partial<State> {
   return {
     webhookFormOpen: true, editingWebhookId: null,
     wfName: '', wfUrl: '', wfMethod: 'POST', wfHeaders: '{}',
     wfBodyTemplate: PRESET_TEMPLATES.generic.bodyTemplate,
     wfNotifyOnRecovery: true, wfPreset: 'generic' as WebhookPreset,
+    testPreviewVisible: false, testSendResult: null,
   }
 }
 
@@ -223,36 +254,91 @@ const Page: Page = function ({ state, context }) {
                         {webhook.notifyOnRecovery && <span className="webhook-recovery-badge">+recovery</span>}
                       </div>
                       <div className="webhook-item-actions">
-                        <button className="wh-action-btn webhook-test-btn" data-webhookid={webhook.id}>Test</button>
                         <button className="wh-action-btn webhook-edit-btn" data-webhookid={webhook.id}>Edit</button>
                         <button className="wh-action-btn webhook-toggle-btn" data-webhookid={webhook.id}>{webhook.enabled ? 'Disable' : 'Enable'}</button>
                         <button className="wh-action-btn webhook-delete-btn danger" data-webhookid={webhook.id}>Delete</button>
                       </div>
-                      {testResults[webhook.id] && (
-                        <div className={`webhook-test-result ${testResults[webhook.id].success ? 'ok' : 'fail'}`}>
-                          {testResults[webhook.id].success ? `OK (${testResults[webhook.id].httpStatus})` : `Failed: ${testResults[webhook.id].error || testResults[webhook.id].httpStatus}`}
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
               )}
-              {state.webhookFormOpen && (
-                <div className="webhook-form">
-                  <h3>{state.editingWebhookId ? 'Edit Webhook' : 'New Webhook'}</h3>
-                  <div className="webhook-form-row"><label className="input-label">Name</label><input className="wf-name wf-input" value={state.wfName} placeholder="e.g. Slack #alerts" /></div>
-                  <div className="webhook-form-row"><label className="input-label">Preset</label><select className="wf-preset wf-select" value={state.wfPreset}><option value="generic">Generic JSON</option><option value="slack">Slack</option><option value="custom">Custom</option></select></div>
-                  <div className="webhook-form-row"><label className="input-label">URL</label><input className="wf-url wf-input" value={state.wfUrl} placeholder="https://hooks.slack.com/..." /></div>
-                  <div className="webhook-form-row"><label className="input-label">Method</label><select className="wf-method wf-select" value={state.wfMethod}><option value="POST">POST</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option></select></div>
-                  <div className="webhook-form-row"><label className="input-label">Headers (JSON)</label><textarea className="wf-headers webhook-textarea" value={state.wfHeaders} rows="2" /></div>
-                  <div className="webhook-form-row"><label className="input-label">Body Template</label><textarea className="wf-body webhook-textarea" value={state.wfBodyTemplate} rows="6" /><p className="input-hint">Variables: {'{{agentId}}'}, {'{{agentName}}'}, {'{{runId}}'}, {'{{status}}'}, {'{{previousStatus}}'}, {'{{createdAt}}'}, {'{{endedAt}}'}, {'{{duration}}'}, {'{{runResult}}'}, {'{{dashboardUrl}}'}</p></div>
-                  <div className="webhook-form-row"><label className="webhook-checkbox-label"><input type="checkbox" className="wf-recovery" checked={state.wfNotifyOnRecovery} />Notify on recovery (failure {'\u2192'} success)</label></div>
-                  <div className="webhook-form-actions">
-                    <button className="wf-save-btn primary-btn" disabled={!(state.wfName || '').trim() || !(state.wfUrl || '').trim()}>{state.editingWebhookId ? 'Update' : 'Create'}</button>
-                    <button className="wf-cancel-btn cancel-btn">Cancel</button>
+              {/* Webhook form modal */}
+              {state.webhookFormOpen && (() => {
+                const testAgent = allAgents.find(a => a.agentId === state.testAgentId) || (selectedIds.length > 0 ? allAgents.find(a => a.agentId === selectedIds[0]) : undefined)
+                const testVars = buildTestVars(testAgent, state.testTransition)
+                const previewBody = resolveTemplate(state.wfBodyTemplate, testVars)
+                const testResultKey = state.editingWebhookId || 'test-preview'
+                const sendResult = testResults[testResultKey]
+                return (
+                  <div className="modal-backdrop">
+                    <div className="modal-overlay wf-cancel-btn"></div>
+                    <div className="modal-content webhook-modal">
+                      <div className="modal-header">
+                        <h2 className="modal-title">{state.editingWebhookId ? 'Edit Webhook' : 'New Webhook'}</h2>
+                        <button className="modal-close-btn wf-cancel-btn">{'\u2715'}</button>
+                      </div>
+                      <div className="modal-body">
+                        <div className="webhook-form-row"><label className="input-label">Name</label><input className="wf-name wf-input" value={state.wfName} placeholder="e.g. Slack #alerts" /></div>
+                        <div className="webhook-form-row"><label className="input-label">Preset</label><select className="wf-preset wf-select" value={state.wfPreset}><option value="generic">Generic JSON</option><option value="slack">Slack</option><option value="custom">Custom</option></select></div>
+                        <div className="webhook-form-row"><label className="input-label">URL</label><input className="wf-url wf-input" value={state.wfUrl} placeholder="https://hooks.slack.com/..." /></div>
+                        <div className="webhook-form-row wf-row-inline">
+                          <div><label className="input-label">Method</label><select className="wf-method wf-select" value={state.wfMethod}><option value="POST">POST</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option></select></div>
+                          <div><label className="webhook-checkbox-label"><input type="checkbox" className="wf-recovery" checked={state.wfNotifyOnRecovery} />Notify on recovery</label></div>
+                        </div>
+                        <div className="webhook-form-row"><label className="input-label">Headers (JSON)</label><textarea className="wf-headers webhook-textarea" value={state.wfHeaders} rows="2" /></div>
+                        <div className="webhook-form-row"><label className="input-label">Body Template</label><textarea className="wf-body webhook-textarea" value={state.wfBodyTemplate} rows="6" /><p className="input-hint">Variables: {'{{agentId}}'}, {'{{agentName}}'}, {'{{runId}}'}, {'{{status}}'}, {'{{previousStatus}}'}, {'{{createdAt}}'}, {'{{endedAt}}'}, {'{{duration}}'}, {'{{runResult}}'}, {'{{dashboardUrl}}'}</p></div>
+
+                        {/* Test section */}
+                        <div className="webhook-test-section">
+                          <button className={classes('test-toggle-btn toggle-test-preview', { active: state.testPreviewVisible })}>
+                            {state.testPreviewVisible ? 'Hide Test' : 'Test Webhook'}
+                          </button>
+
+                          {state.testPreviewVisible && (
+                            <div className="test-preview">
+                              <div className="test-controls">
+                                <select className="test-agent-select wf-select" value={state.testAgentId || ''}>
+                                  <option value="">Sample agent</option>
+                                  {selectedIds.map(id => {
+                                    const a = allAgents.find(ag => ag.agentId === id)
+                                    return a ? <option key={id} value={id}>{a.name}</option> : null
+                                  })}
+                                </select>
+                                <label className="test-radio"><input type="radio" name="test-transition" className="test-transition-fail" checked={state.testTransition === 'failure'} />Failure</label>
+                                <label className="test-radio"><input type="radio" name="test-transition" className="test-transition-recovery" checked={state.testTransition === 'recovery'} />Recovery</label>
+                              </div>
+                              <div className="test-preview-body">
+                                <label className="input-label">Resolved output:</label>
+                                <pre className="test-output">{previewBody}</pre>
+                              </div>
+                              <div className="test-send-row">
+                                <button className="send-test-btn primary-btn" disabled={!(state.wfUrl || '').trim()}>Send Test</button>
+                                {sendResult && (
+                                  <div className="test-result-full">
+                                    <div className={`webhook-test-result ${sendResult.success ? 'ok' : 'fail'}`}>
+                                      {sendResult.success
+                                        ? `${sendResult.httpStatus} OK`
+                                        : `${sendResult.httpStatus || 'Error'}: ${sendResult.error || 'Request failed'}`}
+                                    </div>
+                                    <div className="test-response-section">
+                                      <label className="input-label">Response:</label>
+                                      <pre className="test-response-body">{sendResult.responseBody || '(empty response)'}</pre>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="modal-footer">
+                        <button className="wf-save-btn primary-btn" disabled={!(state.wfName || '').trim() || !(state.wfUrl || '').trim()}>{state.editingWebhookId ? 'Update' : 'Create'}</button>
+                        <button className="wf-cancel-btn cancel-btn">Cancel</button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                )
+              })()}
             </div>
           )}
         </section>
@@ -326,6 +412,7 @@ Page.initialState = {
   wfName: '', wfUrl: '', wfMethod: 'POST', wfHeaders: '{}',
   wfBodyTemplate: PRESET_TEMPLATES.generic.bodyTemplate,
   wfNotifyOnRecovery: true, wfPreset: 'generic' as WebhookPreset,
+  testAgentId: '', testTransition: 'failure' as const, testPreviewVisible: false, testSendResult: null,
 }
 
 Page.intent = ({ DOM }) => ({
@@ -358,6 +445,13 @@ Page.intent = ({ DOM }) => ({
   TOGGLE_WEBHOOKS:          DOM.click('.toggle-webhooks'),
   TOGGLE_FILTER_SELECTED:   DOM.click('.toggle-filter-selected'),
   UPDATE_TIMEZONE:          DOM.input('.tz-selector').value(),
+  TEST_AGENT_SELECT:        DOM.input('.test-agent-select').value(),
+  TEST_TRANSITION_SELECT:   xs.merge(
+    DOM.click('.test-transition-fail').mapTo('failure'),
+    DOM.click('.test-transition-recovery').mapTo('recovery'),
+  ),
+  TOGGLE_TEST_PREVIEW:      DOM.click('.toggle-test-preview'),
+  SEND_TEST:                DOM.click('.send-test-btn'),
 })
 
 Page.model = {
@@ -461,12 +555,16 @@ Page.model = {
     EVENTS: () => ({ type: 'WEBHOOKS_CHANGED', data: null }),
   },
 
-  TEST_WEBHOOK: {
-    WS: (_state, webhookId, _next, { context }): WsCommand | undefined => {
-      const wh = (context.webhooks as Webhook[])?.find(w => w.id === webhookId)
-      if (!wh) return undefined
-      return { action: 'send', msg: { type: 'testWebhook', webhook: wh } }
-    },
+  TEST_WEBHOOK: (state, webhookId, _next, { context }: any) => {
+    const wh = (context.webhooks as Webhook[])?.find(w => w.id === webhookId)
+    if (!wh) return state
+    return {
+      ...state, webhookFormOpen: true, webhooksExpanded: true, editingWebhookId: webhookId,
+      wfName: wh.name, wfUrl: wh.url, wfMethod: wh.method,
+      wfHeaders: JSON.stringify(wh.headers, null, 2), wfBodyTemplate: wh.bodyTemplate,
+      wfNotifyOnRecovery: wh.notifyOnRecovery, wfPreset: 'custom' as WebhookPreset,
+      testPreviewVisible: true, testSendResult: null,
+    }
   },
 
   UPDATE_DEFAULT_WEBHOOK: {
@@ -533,6 +631,31 @@ Page.model = {
 
   TOGGLE_WEBHOOKS: (state) => ({ ...state, webhooksExpanded: !state.webhooksExpanded }),
   TOGGLE_FILTER_SELECTED: (state) => ({ ...state, filterSelected: !state.filterSelected }),
+
+  TEST_AGENT_SELECT: (state, agentId) => ({ ...state, testAgentId: agentId, testSendResult: null }),
+  TEST_TRANSITION_SELECT: (state, transition) => ({ ...state, testTransition: transition as 'failure' | 'recovery', testSendResult: null }),
+  TOGGLE_TEST_PREVIEW: (state) => ({ ...state, testPreviewVisible: !state.testPreviewVisible, testSendResult: null }),
+
+  SEND_TEST: {
+    STATE: (state) => ({ ...state, testSendResult: null }),
+    WS: (state, _data, _next, { context }: any): WsCommand | undefined => {
+      const url = (state.wfUrl || '').trim()
+      if (!url) return undefined
+      let headers: Record<string, string> = {}
+      try { headers = JSON.parse(state.wfHeaders) } catch {}
+      const webhook: Webhook = {
+        id: state.editingWebhookId || 'test-preview',
+        name: state.wfName || 'Test', url,
+        method: (state.wfMethod as Webhook['method']) || 'POST',
+        headers, bodyTemplate: state.wfBodyTemplate,
+        notifyOnRecovery: state.wfNotifyOnRecovery, enabled: true,
+      }
+      const allAgents = context.allAgents || []
+      const testAgent = allAgents.find((a: any) => a.agentId === state.testAgentId)
+      const vars = buildTestVars(testAgent, state.testTransition)
+      return { action: 'send', msg: { type: 'testWebhook', webhook, vars } }
+    },
+  },
 
   UPDATE_TIMEZONE: {
     STATE: (state, tz) => ({ ...state, timezone: tz }),

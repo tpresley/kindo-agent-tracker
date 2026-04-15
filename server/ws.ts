@@ -84,12 +84,13 @@ async function handleMessage(ws: WebSocket, msg: WsClientMessage, listener: (msg
     }
 
     case 'testWebhook': {
-      const result = await fireTestWebhook(msg.webhook)
+      const result = await fireTestWebhook(msg.webhook, msg.vars)
       send(ws, {
         type: 'webhookTestResult',
         webhookId: msg.webhook.id,
         httpStatus: result.httpStatus,
         success: result.success,
+        responseBody: result.responseBody,
         error: result.error,
       })
       break

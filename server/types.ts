@@ -80,7 +80,7 @@ export type WsClientMessage =
     }
   | { type: 'refresh' }
   | { type: 'fetchAgentList' }
-  | { type: 'testWebhook'; webhook: Webhook }
+  | { type: 'testWebhook'; webhook: Webhook; vars?: Record<string, string> }
   | { type: 'getSettings' }
 
 export type SettingsSyncPayload = {
