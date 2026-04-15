@@ -236,8 +236,8 @@ const Page: Page = function ({ state, context }) {
                   <div className="webhook-form-row"><label className="input-label">Body Template</label><textarea className="wf-body webhook-textarea" value={state.wfBodyTemplate} rows="6" /><p className="input-hint">Variables: {'{{agentId}}'}, {'{{agentName}}'}, {'{{runId}}'}, {'{{status}}'}, {'{{previousStatus}}'}, {'{{createdAt}}'}, {'{{endedAt}}'}, {'{{duration}}'}, {'{{runResult}}'}, {'{{dashboardUrl}}'}</p></div>
                   <div className="webhook-form-row"><label className="webhook-checkbox-label"><input type="checkbox" className="wf-recovery" checked={state.wfNotifyOnRecovery} />Notify on recovery (failure {'\u2192'} success)</label></div>
                   <div className="webhook-form-actions">
-                    <button className="submit-key-btn wf-save-btn" disabled={!(state.wfName || '').trim() || !(state.wfUrl || '').trim()}>{state.editingWebhookId ? 'Update' : 'Create'}</button>
-                    <button className="disconnect-btn wf-cancel-btn">Cancel</button>
+                    <button className="wf-save-btn primary-btn" disabled={!(state.wfName || '').trim() || !(state.wfUrl || '').trim()}>{state.editingWebhookId ? 'Update' : 'Create'}</button>
+                    <button className="wf-cancel-btn cancel-btn">Cancel</button>
                   </div>
                 </div>
               )}
