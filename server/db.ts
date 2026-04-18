@@ -2,9 +2,11 @@ import Database from 'better-sqlite3'
 import { join, dirname } from 'node:path'
 import { mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import type { WebhookFireLog } from './types.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DB_PATH = process.env.DB_PATH || join(__dirname, '..', 'data', 'kindo-tracker.db')
+const WEBHOOK_LOG_LIMIT = 100
 
 let db: Database.Database
 
@@ -19,6 +21,14 @@ export function initDb() {
       updatedAt TEXT NOT NULL
     )
   `)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS webhook_fire_logs (
+      id TEXT PRIMARY KEY,
+      timestamp TEXT NOT NULL,
+      payload TEXT NOT NULL
+    )
+  `)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_webhook_fire_logs_timestamp ON webhook_fire_logs(timestamp)`)
 }
 
 export function getSetting(key: string): { value: string; updatedAt: string } | null {
@@ -109,6 +119,42 @@ export function resolveSettings(
   }
 
   return { resolved, resolvedTimestamps, overriddenKeys }
+}
+
+// ── Webhook fire logs ──────────────────────────────────────
+
+/**
+ * Persist a webhook fire log and prune to the most recent WEBHOOK_LOG_LIMIT entries.
+ */
+export function appendWebhookLog(log: WebhookFireLog) {
+  const insert = db.prepare(
+    'INSERT OR REPLACE INTO webhook_fire_logs (id, timestamp, payload) VALUES (?, ?, ?)',
+  )
+  const prune = db.prepare(`
+    DELETE FROM webhook_fire_logs
+    WHERE id NOT IN (
+      SELECT id FROM webhook_fire_logs ORDER BY timestamp DESC LIMIT ?
+    )
+  `)
+  const tx = db.transaction(() => {
+    insert.run(log.id, log.timestamp, JSON.stringify(log))
+    prune.run(WEBHOOK_LOG_LIMIT)
+  })
+  tx()
+}
+
+/**
+ * Load all persisted webhook fire logs, oldest first (client appends newest to the end).
+ */
+export function loadWebhookLogs(): WebhookFireLog[] {
+  const rows = db.prepare(
+    'SELECT payload FROM webhook_fire_logs ORDER BY timestamp ASC',
+  ).all() as Array<{ payload: string }>
+  const out: WebhookFireLog[] = []
+  for (const row of rows) {
+    try { out.push(JSON.parse(row.payload)) } catch { /* skip bad row */ }
+  }
+  return out
 }
 
 /**

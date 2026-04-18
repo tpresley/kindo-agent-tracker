@@ -8,6 +8,7 @@ type State = {
   collapsedAgents: Record<string, boolean>
   compactView: boolean
   modalAgentId: string | null
+  expandedLogId: string | null
 }
 
 type Actions = {
@@ -17,6 +18,7 @@ type Actions = {
   TOGGLE_VIEW: Event
   OPEN_MODAL: string
   CLOSE_MODAL: Event
+  TOGGLE_LOG_DETAILS: string
 }
 
 type Page = Component<State, {}, AppDrivers, Actions, {}, AppContext>
@@ -155,6 +157,57 @@ function renderModal(agent: Agent, runs: Run[], models: Record<string, string>) 
   )
 }
 
+// ── Webhook log detail view ────────────────────────────────
+
+function formatHeaders(headers: Record<string, string> | undefined): string {
+  if (!headers) return '(none)'
+  const keys = Object.keys(headers)
+  if (keys.length === 0) return '(none)'
+  return keys.map(k => `${k}: ${headers[k]}`).join('\n')
+}
+
+function prettyJsonOrRaw(text: string | undefined): string {
+  if (!text) return '(empty)'
+  try {
+    const parsed = JSON.parse(text)
+    return JSON.stringify(parsed, null, 2)
+  } catch {
+    return text
+  }
+}
+
+function renderLogDetails(entry: WebhookFireLog) {
+  return (
+    <div className="webhook-log-details">
+      <div className="wl-detail-meta">
+        <div><span className="wl-detail-label">Run:</span> <code>{entry.newStatus}</code> (was <code>{entry.previousStatus}</code>)</div>
+        <div><span className="wl-detail-label">Agent:</span> <code>{entry.agentId}</code></div>
+        <div><span className="wl-detail-label">Webhook:</span> <code>{entry.webhookId}</code></div>
+        {entry.error && <div className="wl-detail-error"><span className="wl-detail-label">Error:</span> {entry.error}</div>}
+      </div>
+
+      <div className="wl-detail-section">
+        <div className="wl-detail-section-title">Request</div>
+        <div className="wl-detail-url"><code>{entry.requestMethod || '?'} {entry.requestUrl || '(no url recorded)'}</code></div>
+        <div className="wl-detail-subtitle">Headers</div>
+        <pre className="wl-detail-pre">{formatHeaders(entry.requestHeaders)}</pre>
+        <div className="wl-detail-subtitle">Body</div>
+        <pre className="wl-detail-pre">{prettyJsonOrRaw(entry.requestBody)}</pre>
+      </div>
+
+      <div className="wl-detail-section">
+        <div className="wl-detail-section-title">
+          Response {entry.httpStatus !== null && <span className={`wl-detail-status ${entry.success ? 'ok' : 'fail'}`}>{entry.httpStatus}</span>}
+        </div>
+        <div className="wl-detail-subtitle">Headers</div>
+        <pre className="wl-detail-pre">{formatHeaders(entry.responseHeaders)}</pre>
+        <div className="wl-detail-subtitle">Body</div>
+        <pre className="wl-detail-pre">{prettyJsonOrRaw(entry.responseBody)}</pre>
+      </div>
+    </div>
+  )
+}
+
 // ── Page component ─────────────────────────────────────────
 
 const Page: Page = function ({ state, context }) {
@@ -253,19 +306,29 @@ const Page: Page = function ({ state, context }) {
         <section className="webhook-log-section">
           <h3 className="webhook-log-title">Webhook Events</h3>
           <div className="webhook-log">
-            {webhookLog.slice(-10).reverse().map(entry => (
-              <div className={classes('webhook-log-item', entry.success ? 'ok' : 'fail')} key={entry.id}>
-                <span className="wl-time">{formatTime(entry.timestamp)}</span>
-                <span className={classes('wl-transition', entry.transition)}>
-                  {entry.transition === 'failure' ? 'ALERT' : 'RECOVERED'}
-                </span>
-                <span className="wl-agent">{entry.agentName}</span>
-                <span className="wl-webhook">{entry.webhookName}</span>
-                <span className={`wl-result ${entry.success ? 'ok' : 'fail'}`}>
-                  {entry.success ? entry.httpStatus : `Error`}
-                </span>
-              </div>
-            ))}
+            {webhookLog.slice(-25).reverse().map(entry => {
+              const isExpanded = state.expandedLogId === entry.id
+              return (
+                <div className={classes('webhook-log-entry', { expanded: isExpanded })} key={entry.id}>
+                  <div
+                    className={classes('webhook-log-item', 'toggle-log-details', entry.success ? 'ok' : 'fail')}
+                    data-logid={entry.id}
+                  >
+                    <span className="wl-time">{formatTime(entry.timestamp)}</span>
+                    <span className={classes('wl-transition', entry.transition)}>
+                      {entry.transition === 'failure' ? 'ALERT' : 'RECOVERED'}
+                    </span>
+                    <span className="wl-agent">{entry.agentName}</span>
+                    <span className="wl-webhook">{entry.webhookName}</span>
+                    <span className={`wl-result ${entry.success ? 'ok' : 'fail'}`}>
+                      {entry.success ? entry.httpStatus : 'Error'}
+                    </span>
+                    <span className="wl-expand">{isExpanded ? '\u25BC' : '\u25B6'}</span>
+                  </div>
+                  {isExpanded && renderLogDetails(entry)}
+                </div>
+              )
+            })}
           </div>
         </section>
       )}
@@ -277,6 +340,7 @@ Page.initialState = {
   collapsedAgents: {},
   compactView: false,
   modalAgentId: null,
+  expandedLogId: null,
 }
 
 Page.intent = ({ DOM }) => ({
@@ -286,6 +350,7 @@ Page.intent = ({ DOM }) => ({
   TOGGLE_VIEW: DOM.click('.toggle-view'),
   OPEN_MODAL: DOM.click('.open-modal').data('agentid'),
   CLOSE_MODAL: DOM.click('.close-modal'),
+  TOGGLE_LOG_DETAILS: DOM.click('.toggle-log-details').data('logid'),
 })
 
 Page.model = {
@@ -314,6 +379,11 @@ Page.model = {
   OPEN_MODAL: (state, agentId) => ({ ...state, modalAgentId: agentId }),
 
   CLOSE_MODAL: (state) => ({ ...state, modalAgentId: null }),
+
+  TOGGLE_LOG_DETAILS: (state, logId) => ({
+    ...state,
+    expandedLogId: state.expandedLogId === logId ? null : logId,
+  }),
 }
 
 export default Page

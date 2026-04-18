@@ -8,7 +8,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Agent, Run, Webhook, AgentWebhookMap, WebhookFireLog, WsServerMessage } from './types.js'
 import { fetchAgentDetails } from './kindo.js'
-import { loadSettingsForClient } from './db.js'
+import { loadSettingsForClient, appendWebhookLog, loadWebhookLogs } from './db.js'
 
 const SLOW_INTERVAL = 60_000
 const FAST_INTERVAL = 10_000
@@ -54,6 +54,9 @@ export function registerListener(fn: (msg: WsServerMessage) => void) {
   if (lastPollResult) {
     try { fn(lastPollResult) } catch { /* ignore */ }
   }
+  // Send persisted webhook log history so clients see fires that happened
+  // before they connected (or on a different device).
+  try { fn({ type: 'webhookLogSync', logs: loadWebhookLogs() }) } catch { /* ignore */ }
 }
 
 export function unregisterListener(fn: (msg: WsServerMessage) => void) {
@@ -91,7 +94,15 @@ function getWebhooksForAgent(agentId: string): Webhook[] {
   return []
 }
 
-async function fireWebhook(webhook: Webhook, body: string): Promise<{ httpStatus: number | null; success: boolean; error?: string }> {
+type FireResult = {
+  httpStatus: number | null
+  success: boolean
+  error?: string
+  responseHeaders: Record<string, string>
+  responseBody: string
+}
+
+async function fireWebhook(webhook: Webhook, body: string): Promise<FireResult> {
   try {
     const res = await fetch(webhook.url, {
       method: webhook.method,
@@ -99,9 +110,19 @@ async function fireWebhook(webhook: Webhook, body: string): Promise<{ httpStatus
       body,
       signal: AbortSignal.timeout(10_000),
     })
-    return { httpStatus: res.status, success: res.ok }
+    const responseHeaders: Record<string, string> = {}
+    res.headers.forEach((v, k) => { responseHeaders[k] = v })
+    let responseBody = ''
+    try { responseBody = await res.text() } catch { /* ignore */ }
+    return { httpStatus: res.status, success: res.ok, responseHeaders, responseBody }
   } catch (err: any) {
-    return { httpStatus: null, success: false, error: err.message || 'Request failed' }
+    return {
+      httpStatus: null,
+      success: false,
+      error: err.message || 'Request failed',
+      responseHeaders: {},
+      responseBody: '',
+    }
   }
 }
 
@@ -160,6 +181,7 @@ async function fireWebhooksForAgent(
 
   for (const wh of whs) {
     const body = resolveTemplate(wh.bodyTemplate, vars)
+    const requestHeaders = { 'Content-Type': 'application/json', ...wh.headers }
     const result = await fireWebhook(wh, body)
     const log: WebhookFireLog = {
       id: randomUUID(), webhookId: wh.id, webhookName: wh.name,
@@ -167,7 +189,14 @@ async function fireWebhooksForAgent(
       transition, previousStatus, newStatus: latestRun.status,
       httpStatus: result.httpStatus, success: result.success, error: result.error,
       timestamp: new Date().toISOString(),
+      requestUrl: wh.url,
+      requestMethod: wh.method,
+      requestHeaders,
+      requestBody: body,
+      responseHeaders: result.responseHeaders,
+      responseBody: result.responseBody,
     }
+    try { appendWebhookLog(log) } catch { /* persistence failure shouldn't break the fire path */ }
     broadcast({ type: 'webhookFired', log })
   }
 }

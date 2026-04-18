@@ -304,9 +304,13 @@ Wrapper.model = {
       case 'error':
         return { ...state, error: msg.message, loading: false }
       case 'webhookFired': {
-        const log = [...state.webhookLog, msg.log].slice(-50)
+        const log = [...state.webhookLog, msg.log].slice(-100)
         saveWebhookLog(log)
         return { ...state, webhookLog: log }
+      }
+      case 'webhookLogSync': {
+        saveWebhookLog(msg.logs)
+        return { ...state, webhookLog: msg.logs }
       }
       case 'webhookTestResult':
         return { ...state, webhookTestResults: { ...state.webhookTestResults, [msg.webhookId]: { success: msg.success, httpStatus: msg.httpStatus, error: msg.error } } }

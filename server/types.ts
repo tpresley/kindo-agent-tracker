@@ -64,6 +64,13 @@ export type WebhookFireLog = {
   success: boolean
   error?: string
   timestamp: string
+  // Full request/response captured for debugging
+  requestUrl: string
+  requestMethod: string
+  requestHeaders: Record<string, string>
+  requestBody: string
+  responseHeaders: Record<string, string>
+  responseBody: string
 }
 
 // ── WebSocket protocol ─────────────────────────────────────
@@ -96,5 +103,6 @@ export type WsServerMessage =
   | { type: 'agentList'; agents: AgentSummary[]; total: number; models: Record<string, string> }
   | { type: 'error'; message: string }
   | { type: 'webhookFired'; log: WebhookFireLog }
+  | { type: 'webhookLogSync'; logs: WebhookFireLog[] }
   | { type: 'webhookTestResult'; webhookId: string; httpStatus: number | null; success: boolean; responseBody?: string; error?: string }
   | { type: 'settingsSync'; settings: SettingsSyncPayload; overriddenKeys: string[]; timestamps: Record<string, string> }
