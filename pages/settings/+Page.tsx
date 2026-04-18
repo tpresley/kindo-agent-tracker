@@ -354,8 +354,30 @@ const Page: Page = function ({ state, context }) {
           {allAgents.length === 0 && connected && (
             <div className="loading-state"><div className="spinner" /><p>Loading agent list...</p></div>
           )}
-          {allAgents.length > 0 && (
+          {allAgents.length > 0 && (() => {
+            const allAgentIdSet = new Set(allAgents.map(a => a.agentId))
+            const orphanedIds = selectedIds.filter(id => !allAgentIdSet.has(id))
+            return (
             <>
+              {orphanedIds.length > 0 && (
+                <div className="orphaned-agents">
+                  <div className="orphaned-agents-header">
+                    <span className="orphaned-icon">{'\u26A0'}</span>
+                    <div>
+                      <div className="orphaned-title">{orphanedIds.length} selected agent{orphanedIds.length !== 1 ? 's' : ''} no longer exist{orphanedIds.length !== 1 ? '' : 's'} in Kindo</div>
+                      <div className="orphaned-subtitle">These may have been deleted. Remove them to stop tracking.</div>
+                    </div>
+                  </div>
+                  <div className="orphaned-list">
+                    {orphanedIds.map(id => (
+                      <div key={id} className="orphaned-item">
+                        <span className="orphaned-id"><code>{id}</code></span>
+                        <button className="agent-toggle-btn orphaned-remove-btn danger" data-agentid={id}>Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="filter-bar">
                 <input type="text" className="search-input" placeholder="Search agents..." value={state.searchQuery} />
                 <select className="creator-filter" value={state.filterCreator || 'all'}>
@@ -398,7 +420,8 @@ const Page: Page = function ({ state, context }) {
                 {filtered.length === 0 && <div className="no-agents">No agents match your filters</div>}
               </div>
             </>
-          )}
+            )
+          })()}
         </section>
       )}
     </div>

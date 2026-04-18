@@ -1815,6 +1815,88 @@ body {
   color: var(--color-danger);
 }
 
+/* ── Orphaned agents (deleted in Kindo) ─────────────────────── */
+
+.orphaned-agents {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.orphaned-agents-header {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.orphaned-icon {
+  color: var(--color-danger);
+  font-size: 1rem;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.orphaned-title {
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 0.8125rem;
+}
+
+.orphaned-subtitle {
+  color: var(--color-text-dim);
+  font-size: 0.75rem;
+}
+
+.orphaned-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.orphaned-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: var(--radius-xs);
+  font-size: 0.75rem;
+}
+
+.orphaned-id {
+  flex: 1;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--color-text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orphaned-remove-btn {
+  flex-shrink: 0;
+  background: var(--color-danger-dim);
+  color: var(--color-danger);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: var(--radius-xs);
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.orphaned-remove-btn:hover {
+  background: var(--color-danger);
+  color: white;
+  border-color: var(--color-danger);
+}
+
 /* ── Agent Detail Modal ─────────────────────────────────────── */
 
 .modal-backdrop {
